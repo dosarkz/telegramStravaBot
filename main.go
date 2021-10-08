@@ -12,9 +12,28 @@ import (
 	"time"
 )
 
+var numericKeyboard = tgbotapi.NewReplyKeyboard(
+    tgbotapi.NewKeyboardButtonRow(
+        tgbotapi.NewKeyboardButton("Клуб Любителей Бега MaratHON"),
+    ),
+	tgbotapi.NewKeyboardButtonRow(
+		tgbotapi.NewKeyboardButton("Рейтинг Метронома"),
+		tgbotapi.NewKeyboardButton("Расписание"),
+	),
+	tgbotapi.NewKeyboardButtonRow(
+		tgbotapi.NewKeyboardButton("Местоположение точки сбора"),
+		tgbotapi.NewKeyboardButton("СБУ И ОФП"),
+	),
+	tgbotapi.NewKeyboardButtonRow(
+        tgbotapi.NewKeyboardButton("Закрыть меню"),
+    ),
+)
+
+var stravaButtonData = "👍🏻"
+var metroKeyBoard  = tgbotapi.NewInlineKeyboardMarkup([]tgbotapi.InlineKeyboardButton{tgbotapi.InlineKeyboardButton{Text: "Страница в Strava", CallbackData: &stravaButtonData}})
+
 func main() {
 	err := godotenv.Load()
-	message := ""
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -40,25 +59,47 @@ func main() {
 
 		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+
 		switch update.Message.Text {
-		case "/rating":
-			message = getRatingClub()
-			break
-		case "/hello":
-			message = "Привет, бегун!"
-		default:
-			message = "Хм... бот таких команд не знает.\n Посмотреть рейтинг по клубу: /rating"
+			case "/start":
+				msg = getStartMessage(update)
+				 break
+            case "/open":
+                msg.ReplyMarkup = numericKeyboard
+				msg.Text = "Открыто меню"
+				 break
+            case "/close", "Закрыть меню":
+                msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+				msg.Text = "Закрыто"
+				break
+            case "/rating", "Рейтинг Метронома":
+                msg.Text = getRatingClub()
+                break
+            case "/club":
+                msg.Text = getClubInfo()
+                msg.ReplyMarkup = metroKeyBoard
+                break
+            case "/hello":
+                msg.Text = "Привет, бегун!"
+				break
+            default:
+				msg.Text = "Ой, кажется что-то пошло не так."
 		}
 
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, message)
-		msg.ReplyToMessageID = update.Message.MessageID
-		msg.ParseMode = "markdown"
-		bot.Send(msg)
+		sendMsg(msg, update, bot)
 	}
 }
 
+func sendMsg(msg tgbotapi.MessageConfig, update tgbotapi.Update, bot *tgbotapi.BotAPI )  {
+	msg.ReplyToMessageID = update.Message.MessageID
+    msg.ParseMode = "markdown"
+    bot.Send(msg)
+}
+
 func getRatingClub() string {
-	message := "Рейтинг Метронома на этой неделе\n"
+	currentTime := time.Now().Format("01-02-2006")
+	message := "Рейтинг Метронома на этой неделе от "+currentTime+"\n"
 	req, err := http.NewRequest("GET", "https://www.strava.com/clubs/540448/leaderboard", nil)
 	if err != nil {
 		log.Panic(err)
@@ -93,6 +134,25 @@ func getRatingClub() string {
 	}
 
 	return message
+}
+
+func getStartMessage(update tgbotapi.Update) tgbotapi.MessageConfig {
+	msg := tgbotapi.NewMessage(
+		update.Message.Chat.ID,
+		"*Вас приветствует бот Metronome* 😃🖐"+
+			"\n"+
+			"/open ➡️ Открыть главное меню\n"+
+			"/close ➡️ Закрыть меню\n"+
+			"/rating ➡️ Рейтинг Метронома\n" +
+			"/club ➡️ Информация о клубе\n")
+	msg.ParseMode = "Markdown"
+	return msg
+}
+
+func getClubInfo() string{
+    return "*Рады приветствовать в Metronome team!* \n" +
+    	"74' выпуск от школы бега Марата Жыланбаева, которая бегает во все времена года!\n" +
+    	"Друзья, добро пожаловать!\n"
 }
 
 type Rates struct {
