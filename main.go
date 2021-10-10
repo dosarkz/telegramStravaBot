@@ -20,17 +20,35 @@ var numericKeyboard = tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButton("Рейтинг Метронома"),
 		tgbotapi.NewKeyboardButton("Расписание"),
 	),
-	tgbotapi.NewKeyboardButtonRow(
-		tgbotapi.NewKeyboardButton("Местоположение точки сбора"),
-		tgbotapi.NewKeyboardButton("СБУ И ОФП"),
-	),
+    tgbotapi.NewKeyboardButtonRow(
+        tgbotapi.NewKeyboardButton("О нас"),
+        tgbotapi.NewKeyboardButton("Разминка Амосова"),
+    ),
+// 	tgbotapi.NewKeyboardButtonRow(
+// 		tgbotapi.NewKeyboardButton("Местоположение точки сбора"),
+// 		tgbotapi.NewKeyboardButton("СБУ И ОФП"),
+// 	),
 	tgbotapi.NewKeyboardButtonRow(
         tgbotapi.NewKeyboardButton("Закрыть меню"),
     ),
 )
 
-var stravaButtonData = "👍🏻"
-var metroKeyBoard  = tgbotapi.NewInlineKeyboardMarkup([]tgbotapi.InlineKeyboardButton{tgbotapi.InlineKeyboardButton{Text: "Страница в Strava", CallbackData: &stravaButtonData}})
+var instagramButtonData = "https://www.instagram.com/metronom_team"
+var stravaButtonData = "https://www.strava.com/clubs/540448"
+var metronomeButtonData = "https://t.me/joinchat/VoeA783qZuIBa4um"
+var botanButtonData  = "https://t.me/botandostar"
+var centralButtonData = "https://chat.whatsapp.com/LdfZSnyInE7F7PrAfpqaXj"
+var stravaButton = tgbotapi.InlineKeyboardButton{Text: "Подписаться в Strava", URL: &stravaButtonData}
+var instaButton = tgbotapi.InlineKeyboardButton{Text: "Подписаться в Instagram", URL: &instagramButtonData}
+
+var metronomeButton = tgbotapi.InlineKeyboardButton{Text: "Сообщество в Триатлон парке (Metronome)", URL: &metronomeButtonData}
+var botanButton = tgbotapi.InlineKeyboardButton{Text: "Сообщество в Ботаническом саду (Ботаны)", URL: &botanButtonData}
+var centralButton = tgbotapi.InlineKeyboardButton{Text: "Сообщество в Центральном парке (whatsapp группа)", URL: &centralButtonData}
+var metroKeyBoard  = tgbotapi.NewInlineKeyboardMarkup([]tgbotapi.InlineKeyboardButton{stravaButton, instaButton})
+var marathonKeyBoard = tgbotapi.NewInlineKeyboardMarkup(
+                        []tgbotapi.InlineKeyboardButton{metronomeButton},
+                        []tgbotapi.InlineKeyboardButton{botanButton},
+                        []tgbotapi.InlineKeyboardButton{centralButton})
 
 func main() {
 	err := godotenv.Load()
@@ -76,18 +94,41 @@ func main() {
             case "/rating", "Рейтинг Метронома":
                 msg.Text = getRatingClub()
                 break
-            case "/club":
+            case "Расписание":
+                msg.Text = "Тренировки проводяться на улице в 6:00 утра:\n"+
+                    "- вторник,\n"+
+                    "- четверг,\n"+
+                    "- суббота\n"
+                break
+            case "Клуб Любителей Бега MaratHON":
+                   msg.Text = getMarathonInfo()
+                   msg.ReplyMarkup = marathonKeyBoard
+                break
+            case "/club", "О нас":
                 msg.Text = getClubInfo()
                 msg.ReplyMarkup = metroKeyBoard
+                break
+
+            case "Разминка Амосова":
+                    msg.Text = "Уникальная программа разминки Амосова от Марата Тулегеновича, делайте ее ежедневно и будете здоровы!\n"+
+                            "* Каждое упражнение выполняется по 100 раз!* \n" +
+                            "- Руки на пояс и движение корпусом влево и вправо \n" +
+                            "- Движение корпусом вниз и вверх \n"+
+                            "- Сгибание и разгибание рук к центру \n"+
+                            "- Ноги вместе, сгибание и полуприсед вперед и назад до начала стопы \n"+
+                            "- Сгибание и полуприсед влево и вправо \n"+
+                            "- Круговые движения ног по часовой стрелке и против. \n" +
+                            "- Выпады. \n"
                 break
             case "/hello":
                 msg.Text = "Привет, бегун!"
 				break
-            default:
-				msg.Text = "Ой, кажется что-то пошло не так."
 		}
 
-		sendMsg(msg, update, bot)
+        if msg.Text != update.Message.Text{
+            fmt.Printf(msg.Text)
+            sendMsg(msg, update, bot)
+        }
 	}
 }
 
@@ -126,7 +167,7 @@ func getRatingClub() string {
 		log.Fatal(jsonErr)
 	}
 	for _, items := range jsonMap {
-		for i:=0; i<len(items); i++ {
+		for i:=0; i < len(items); i++ {
 			athleteLink := fmt.Sprintf("https://www.strava.com/athletes/%d", items[i].AthleteId)
 			message += fmt.Sprintf("%d) [%s %s](%s) - расстояние: %1.f км, забеги: %d, самый длинный: %1.f км \n", items[i].Rank, items[i].AthleteFirstname, items[i].AthleteLastname, athleteLink,
 				items[i].Distance / 1000, items[i].NumActivities, items[i].BestActivitiesDistance / 1000)
@@ -152,7 +193,12 @@ func getStartMessage(update tgbotapi.Update) tgbotapi.MessageConfig {
 func getClubInfo() string{
     return "*Рады приветствовать в Metronome team!* \n" +
     	"74' выпуск от школы бега Марата Жыланбаева, которая бегает во все времена года!\n" +
-    	"Друзья, добро пожаловать!\n"
+    	"Друзья, добро пожаловать! Подписывайтесь на наши странички и участвуйте в еженедельном рейтинге бега.\n"
+}
+
+func getMarathonInfo() string{
+    return "## *Marat#ON Клуб Марафонцев* \n" +
+    	"Клуб Любителей Бега Marat#ON (Марафон) вновь создан в г. Астана в начале 2017 года и объединяет выпускников школы бега Марата Жыланбаева.\n Мастер спорта международного класса, ультрамарафонец, первый и единственный атлет в истории человечества, в одиночку пробежавший крупнейшие пустыни Азии, Африки, Австралии и Америки.\n Установил несколько мировых рекордов, семь из них занесены в Книгу рекордов Гиннеса.\n Большая часть мировых рекордов, установленных Жыланбаевым в начале 1990-х годов остаются по-прежнему не превзойденными.\n"
 }
 
 type Rates struct {
