@@ -139,8 +139,9 @@ func sendMsg(msg tgbotapi.MessageConfig, update tgbotapi.Update, bot *tgbotapi.B
 }
 
 func getRatingClub() string {
-	currentTime := time.Now().Format("01-02-2006")
-	message := "Рейтинг Метронома на этой неделе от "+currentTime+"\n"
+	currentTime := time.Now().Format(time.RFC822)
+	message := "🏆Рейтинг Метронома 🏃‍♀️🏃 на этой неделе от "+currentTime+"\n"
+	message += "\n"
 	req, err := http.NewRequest("GET", "https://www.strava.com/clubs/540448/leaderboard", nil)
 	if err != nil {
 		log.Panic(err)
@@ -169,10 +170,12 @@ func getRatingClub() string {
 	for _, items := range jsonMap {
 		for i:=0; i < len(items); i++ {
 			athleteLink := fmt.Sprintf("https://www.strava.com/athletes/%d", items[i].AthleteId)
-			message += fmt.Sprintf("%d) [%s %s](%s) - расстояние: %1.f км, забеги: %d, самый длинный: %1.f км \n", items[i].Rank, items[i].AthleteFirstname, items[i].AthleteLastname, athleteLink,
-				items[i].Distance / 1000, items[i].NumActivities, items[i].BestActivitiesDistance / 1000)
+			message += fmt.Sprintf("%d) [%s %s](%s) - расстояние: %.2f км, забеги: %d, самый длинный: %.2f км, ср.скорость: %.2f км/ч \n", items[i].Rank, items[i].AthleteFirstname, items[i].AthleteLastname, athleteLink,
+				items[i].Distance / 1000, items[i].NumActivities, items[i].BestActivitiesDistance / 1000, items[i].Velocity * 3.6)
 		}
 	}
+    message += "\n"
+	message += "**Хотите участвовать в рейтинге ‍🚀?** \n Подписывайтесь на страницу в [STRAVA](https://www.strava.com/clubs/540448) и вы автоматически будете в нашем списке 😀👍"
 
 	return message
 }
