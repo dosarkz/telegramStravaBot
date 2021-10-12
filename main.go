@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"math"
 	"os"
 	"time"
 )
@@ -171,7 +172,7 @@ func getRatingClub() string {
 		for i:=0; i < len(items); i++ {
 			athleteLink := fmt.Sprintf("https://www.strava.com/athletes/%d", items[i].AthleteId)
 			message += fmt.Sprintf("%d) [%s %s](%s) - расстояние: %.2f км, забеги: %d, самый длинный: %.2f км, ср.темп: %.2f /км \n", items[i].Rank, items[i].AthleteFirstname, items[i].AthleteLastname, athleteLink,
-				items[i].Distance / 1000, items[i].NumActivities, items[i].BestActivitiesDistance / 1000, secondsToMinutes(items[i].MovingTime) / (items[i].Distance / 1000) )
+				items[i].Distance / 1000, items[i].NumActivities, items[i].BestActivitiesDistance / 1000, getPace(items[i].MovingTime, items[i].Distance) )
 		}
 	}
     message += "\n"
@@ -180,10 +181,15 @@ func getRatingClub() string {
 	return message
 }
 
-func secondsToMinutes(inSeconds int) float32 {
+func secondsToMinutes(inSeconds int) float64 {
      minutes := inSeconds / 60
      seconds := inSeconds % 60
-     return float32(minutes + (seconds /100))
+     return float64(minutes + (seconds /100))
+}
+
+func getPace(movingTime int, distance float32) float64 {
+  intPace, float := math.Modf(secondsToMinutes(movingTime) / float64(distance / 1000))
+  return intPace + (float * 60 / 100)
 }
 
 func getStartMessage(update tgbotapi.Update) tgbotapi.MessageConfig {
