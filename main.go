@@ -170,14 +170,20 @@ func getRatingClub() string {
 	for _, items := range jsonMap {
 		for i:=0; i < len(items); i++ {
 			athleteLink := fmt.Sprintf("https://www.strava.com/athletes/%d", items[i].AthleteId)
-			message += fmt.Sprintf("%d) [%s %s](%s) - расстояние: %.2f км, забеги: %d, самый длинный: %.2f км, ср.скорость: %.2f км/ч \n", items[i].Rank, items[i].AthleteFirstname, items[i].AthleteLastname, athleteLink,
-				items[i].Distance / 1000, items[i].NumActivities, items[i].BestActivitiesDistance / 1000, items[i].Velocity * 3.6)
+			message += fmt.Sprintf("%d) [%s %s](%s) - расстояние: %.2f км, забеги: %d, самый длинный: %.2f км, ср.темп: %.2f /км \n", items[i].Rank, items[i].AthleteFirstname, items[i].AthleteLastname, athleteLink,
+				items[i].Distance / 1000, items[i].NumActivities, items[i].BestActivitiesDistance / 1000, secondsToMinutes(items[i].MovingTime) / (items[i].Distance / 1000) )
 		}
 	}
     message += "\n"
 	message += "**Хотите участвовать в рейтинге ‍🚀?** \n Подписывайтесь на страницу в [STRAVA](https://www.strava.com/clubs/540448) и вы автоматически будете в нашем списке 😀👍"
 
 	return message
+}
+
+func secondsToMinutes(inSeconds int) float32 {
+     minutes := inSeconds / 60
+     seconds := inSeconds % 60
+     return float32(minutes + (seconds /100))
 }
 
 func getStartMessage(update tgbotapi.Update) tgbotapi.MessageConfig {
