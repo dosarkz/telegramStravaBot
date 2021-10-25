@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/joho/godotenv"
+	"io"
 	"io/ioutil"
 	"log"
 	"math"
@@ -136,7 +137,10 @@ func main() {
 func sendMsg(msg tgbotapi.MessageConfig, update tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	msg.ReplyToMessageID = update.Message.MessageID
 	msg.ParseMode = "markdown"
-	bot.Send(msg)
+	_, err := bot.Send(msg)
+	if err != nil {
+		log.Panic(err)
+	}
 }
 
 func getRatingClub() string {
@@ -154,7 +158,12 @@ func getRatingClub() string {
 	resp, err := client.Do(req)
 
 	if resp.Body != nil {
-		defer resp.Body.Close()
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				log.Panic(err)
+			}
+		}(resp.Body)
 	}
 
 	body, readErr := ioutil.ReadAll(resp.Body)
@@ -214,10 +223,6 @@ func getClubInfo() string {
 func getMarathonInfo() string {
 	return "*Marat#ON Клуб Марафонцев* \n" +
 		"Клуб Любителей Бега Marat#ON (Марафон) вновь создан в г. Астана в начале 2017 года и объединяет выпускников школы бега Марата Жыланбаева.\n Мастер спорта международного класса, ультрамарафонец, первый и единственный атлет в истории человечества, в одиночку пробежавший крупнейшие пустыни Азии, Африки, Австралии и Америки.\n Установил несколько мировых рекордов, семь из них занесены в Книгу рекордов Гиннеса.\n Большая часть мировых рекордов, установленных Жыланбаевым в начале 1990-х годов остаются по-прежнему не превзойденными.\n"
-}
-
-type Rates struct {
-	data []Rating
 }
 
 type Rating struct {
