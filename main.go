@@ -41,6 +41,7 @@ var stravaButtonData = "https://www.strava.com/clubs/540448"
 var metronomeButtonData = "https://t.me/joinchat/VoeA783qZuIBa4um"
 var botanButtonData = "https://t.me/botandostar"
 var centralButtonData = "https://chat.whatsapp.com/LdfZSnyInE7F7PrAfpqaXj"
+var weatherAst = "https://api.weather.yandex.ru/v2/informers?lat=51.1801&lon=71.446"
 var stravaButton = tgbotapi.InlineKeyboardButton{Text: "Подписаться в Strava", URL: &stravaButtonData}
 var instaButton = tgbotapi.InlineKeyboardButton{Text: "Подписаться в Instagram", URL: &instagramButtonData}
 
@@ -68,19 +69,61 @@ func main() {
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
+	 req, err := http.NewRequest("GET", weatherAst, nil)
+            if err != nil {
+                log.Panic(err)
+            }
+            client := &http.Client{Timeout: 10 * time.Second}
+            req.Header.Add("X-Yandex-API-Key", os.Getenv("YANDEX_API_KEY"))
+            resp, err := client.Do(req)
+
+            if resp.Body != nil {
+                defer func(Body io.ReadCloser) {
+                    err := Body.Close()
+                    if err != nil {
+                        log.Panic(err)
+                    }
+                }(resp.Body)
+            }
+
+            body, readErr := ioutil.ReadAll(resp.Body)
+            if readErr != nil {
+                log.Fatal(readErr)
+            }
+
+
+            jsonMap := new(Weather)
+            jsonErr := json.Unmarshal(body, &jsonMap)
+
+            if jsonErr != nil {
+                log.Fatal(jsonErr)
+            }
+
+             unixTimeUTC:=time.Unix(jsonMap.Now, 0).Format("Jan 2, 2006 от 3:04 PM")
+
+    weatherStr := fmt.Sprintf("Дата: %s \nПогода: %d°, ощущается как: %d°, осадки: %s, ск. ветра: %.1f м/с, влажность: %d",
+    unixTimeUTC, jsonMap.Fact.Temp, jsonMap.Fact.Feel, jsonMap.Fact.Condition, jsonMap.Fact.WindSpeed, jsonMap.Fact.Humidity)
+
 	c := cron.New()
-	c.AddFunc("30 5 * * 2,4,6", func() {
-		fmt.Println("Every hour on the half hour")
-		config := tgbotapi.ChatConfig{ChatID: 222288800}
-		chat, err := bot.GetChat(config)
-		if err != nil {
-			log.Panic(err)
-		}
-		log.Printf("chat id is:  %s", chat)
-		newMessage := tgbotapi.NewMessage(chat.ID, "Qairly Tan, Dostar!  ")
-		bot.Send(newMessage)
-	})
-	c.Start()
+    c.AddFunc("30 5 * * 2,4,6", func() {
+        config := tgbotapi.ChatConfig{ChatID: -1001451720943}
+        chat, err := bot.GetChat(config)
+        if err != nil {
+            log.Panic(err)
+        }
+
+        newMessage := tgbotapi.NewMessage(chat.ID, " С добрым утречком тебя,\n"+
+                                                      "Улыбнись скорее,\n"+
+                                                      "Легкого желаю дня☀,\n"+
+                                                      "Быть тебе бодрее!\n"+
+                                                        "\n"+
+                                                      "Всюду и везде успеть,\n"+
+                                                      "Чаще улыбаться,\n"+
+                                                      "А еще не уставать,\n"+
+                                                      "Жизнью наслаждаться🤗!\n\n"+ weatherStr)
+        bot.Send(newMessage)
+    })
+    c.Start()
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -253,4 +296,19 @@ type Rating struct {
 	AthleteLastname        string  `json:"athlete_lastname"`
 	//athletePictureUrl string
 	//athleteMemberType string
+}
+
+type Weather struct {
+    Now      int64 `json:"now"`
+    Fact    struct {
+        Temp int32 `json:"temp"`
+        Feel int32 `json:"feels_like"`
+        Icon string `json:"icon"`
+        Condition string `json:"condition"`
+        WindSpeed float32 `json:"wind_speed"`
+        Humidity int `json:"humidity"`
+    }
+    Forecast struct {
+        Sunrise string `json:"sunrise"`
+    }
 }
