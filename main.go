@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/joho/godotenv"
+	"github.com/robfig/cron/v3"
 	"io"
 	"io/ioutil"
 	"log"
@@ -67,16 +68,30 @@ func main() {
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
+	c := cron.New()
+	c.AddFunc("30 5 * * 2,4,6", func() {
+		fmt.Println("Every hour on the half hour")
+		config := tgbotapi.ChatConfig{ChatID: 222288800}
+		chat, err := bot.GetChat(config)
+		if err != nil {
+			log.Panic(err)
+		}
+		log.Printf("chat id is:  %s", chat)
+		newMessage := tgbotapi.NewMessage(chat.ID, "Qairly Tan, Dostar!  ")
+		bot.Send(newMessage)
+	})
+	c.Start()
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
 	updates, err := bot.GetUpdatesChan(u)
 
 	for update := range updates {
+
 		if update.Message == nil { // ignore any non-Message Updates
 			continue
 		}
-
 		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
