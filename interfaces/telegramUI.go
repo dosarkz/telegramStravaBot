@@ -206,7 +206,7 @@ func getRatingClub() string {
 		log.Fatal(jsonErr)
 	}
 	for _, items := range jsonMap {
-		for i := 0; i < len(items); i++ {
+		for i := 0; i < 10; i++ {
 			athleteLink := fmt.Sprintf("https://www.strava.com/athletes/%d", items[i].AthleteId)
 			message += fmt.Sprintf("%d) [%s %s](%s) - расстояние: %.2f км, забеги: %d, самый длинный: %.2f км, ср.темп: %.2f /км \n", items[i].Rank, items[i].AthleteFirstname, items[i].AthleteLastname, athleteLink,
 				items[i].Distance/1000, items[i].NumActivities, items[i].BestActivitiesDistance/1000, getPace(items[i].MovingTime, items[i].Distance))
