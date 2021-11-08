@@ -20,6 +20,7 @@ func main() {
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	ya := interfaces.NewYandexWeather(bot)
+	ya.Init()
 
 	ui := interfaces.NewTelegramUI()
 	telegramRepo := interfaces.TelegramUIRepository{UI: ui, YA: ya}

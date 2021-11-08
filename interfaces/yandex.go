@@ -15,7 +15,7 @@ import (
 )
 
 type YandexWeather interface {
-	init()
+	Init()
 	GetForecastRequest() *domain.Weather
 	GetForecastText() string
 }
@@ -28,7 +28,7 @@ func NewYandexWeather(bot *tgbotapi.BotAPI) YandexWeather {
 	return &yandexWeather{bot: bot}
 }
 
-func (y *yandexWeather) init() {
+func (y *yandexWeather) Init() {
 	c := cron.New()
 	c.AddFunc("30 5 * * 2,4,6", func() {
 		config := tgbotapi.ChatConfig{ChatID: -1001451720943}
