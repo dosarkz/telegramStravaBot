@@ -1,0 +1,33 @@
+version: "3.7"
+
+services:
+  database:
+    container_name: runbot_db
+    image: postgres
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - ${DOCKER_POSTGRES_PORT}
+    volumes:
+      - data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=$DATABASE_DB
+      - POSTGRES_USER=$DATABASE_USER
+      - POSTGRES_PASSWORD=$DATABASE_PASSWORD
+  server:
+    container_name: runbot_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    volumes:
+      - .:/go/src/telegramStravaBot
+    depends_on:
+      - database
+    networks:
+      - default
+    ports:
+      - ${DOCKER_SERVER_PORT}
+volumes:
+  data:
