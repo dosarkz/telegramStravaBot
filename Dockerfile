@@ -13,7 +13,7 @@ FROM alpine
 
 RUN apk add --no-cache  make musl-dev go bash git openssh ca-certificates && update-ca-certificates
 COPY --from=builder /go/src/telegramStravaBot/build/telegramStravaBot /usr/bin/telegramStravaBot
-
+COPY --from=builder  /go/src/telegramStravaBot/.env /go/.env
 # Configure Go
 ENV GOROOT /usr/lib/go
 ENV GOPATH /go
