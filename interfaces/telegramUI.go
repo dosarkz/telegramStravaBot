@@ -163,10 +163,10 @@ func (r TelegramUIRepository) Init(bot *tgbotapi.BotAPI) {
 			msg.ReplyMarkup = r.UI.MarathonInlineKeyboardMarkup()
 			break
 		case "Свернуть меню":
-			msg.Text = "Слушаюсь и повинуюсь, мой господин."
+			msg.Text = "ok"
 			msg.ReplyMarkup = r.UI.HideMenu()
 			break
-		case "Погода":
+		case "Погода", "/weather":
 			msg.Text = r.YA.GetForecastText()
 			break
 		case "Разминка Амосова":
