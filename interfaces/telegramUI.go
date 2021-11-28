@@ -3,7 +3,7 @@ package interfaces
 import (
 	"encoding/json"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"io"
 	"io/ioutil"
 	"log"
@@ -18,11 +18,14 @@ type TelegramUI interface {
 	MainMenu() tgbotapi.ReplyKeyboardMarkup
 	StravaInlineButton() tgbotapi.InlineKeyboardButton
 	InstaInlineButton() tgbotapi.InlineKeyboardButton
+	Participate(text string, callback *string) tgbotapi.InlineKeyboardButton
 	MetronomeInlineButton() tgbotapi.InlineKeyboardButton
 	BotanInlineButton() tgbotapi.InlineKeyboardButton
 	MetroInlineKeyboardMarkup() tgbotapi.InlineKeyboardMarkup
 	MarathonInlineKeyboardMarkup() tgbotapi.InlineKeyboardMarkup
-	HideMenu() tgbotapi.ReplyKeyboardHide
+	AppointmentKeyboardMarkup() tgbotapi.InlineKeyboardMarkup
+	AppointmentDoneKeyboardMarkup() tgbotapi.InlineKeyboardMarkup
+	HideMenu() tgbotapi.ReplyKeyboardRemove
 	MarathonText() string
 }
 type telegramUI struct{}
@@ -40,31 +43,23 @@ func (t *telegramUI) MainMenu() tgbotapi.ReplyKeyboardMarkup {
 			tgbotapi.NewKeyboardButton("Разминка Амосова"),
 			tgbotapi.NewKeyboardButton("Погода"),
 		),
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("Свернуть меню"),
-		),
 	)
 	return keyboard
 }
 
 func (t *telegramUI) MarathonText() string {
 	return "*Marat#ON Клуб Марафонцев* \n" +
-		"Клуб Любителей Бега Marat#ON (Марафон) вновь создан в г. Астана в начале 2017 года и объединяет выпускников школы бега Марата Жыланбаева.\n Мастер спорта международного класса, ультрамарафонец, первый и единственный атлет в истории человечества, в одиночку пробежавший крупнейшие пустыни Азии, Африки, Австралии и Америки.\n Установил несколько мировых рекордов, семь из них занесены в Книгу рекордов Гиннеса.\n Большая часть мировых рекордов, установленных Жыланбаевым в начале 1990-х годов остаются по-прежнему не превзойденными.\n" +
-		"\n" +
-		"Правильные привычки:\n" +
-		"1. [Ранний подъем](https://t.me/joinchat/RmTylGpvufsuzgoc) \n" +
-		"2. [Саморазвитие, полезная инфа и инсайты](https://t.me/joinchat/dpPMLIeZ541lZDQy) \n" +
-		"3. [Плавание](https://t.me/joinchat/yxKrjcog23gxOTRi) \n" +
-		"4. [Иностранные языки](https://t.me/joinchat/1yXyJvmY4-hmYTFi) \n" +
-		"5. [Флудилка](https://t.me/joinchat/ztiWYAZ2cY1iMzI6) \n" +
-		"6. [Ораторское искуство](https://wa.me/77016051769) \n" +
-		"7. [Запись к Марату Жыланбаеву Астана](https://t.me/zhylanbayev) \n" +
-		"8. [Запись к Марату Жыланбаеву Алматы](https://t.me/zhylanbayevmarat) \n" +
-		"9. [Моржи, чат \"Белых Медведей\"](https://t.me/joinchat/J0JRHiLl2-swNjZi ) \n"
+		"Клуб Любителей Бега Marat#ON (Марафон) вновь создан в г. Астана в начале 2017 года" +
+		" и объединяет выпускников школы бега Марата Жыланбаева.\n Мастер спорта международного класса," +
+		" ультрамарафонец, первый и единственный атлет в истории человечества, в одиночку пробежавший крупнейшие" +
+		" пустыни Азии, Африки, Австралии и Америки.\n Установил несколько мировых рекордов, семь из них занесены в" +
+		" Книгу рекордов Гиннеса.\n Большая часть мировых рекордов, установленных Жыланбаевым в начале 1990-х годов" +
+		" остаются по-прежнему не превзойденными.\n" +
+		"\n"
 }
 
-func (t *telegramUI) HideMenu() tgbotapi.ReplyKeyboardHide {
-	return tgbotapi.ReplyKeyboardHide{HideKeyboard: true, Selective: true}
+func (t *telegramUI) HideMenu() tgbotapi.ReplyKeyboardRemove {
+	return tgbotapi.ReplyKeyboardRemove{RemoveKeyboard: true, Selective: true}
 }
 
 func (t *telegramUI) StravaInlineButton() tgbotapi.InlineKeyboardButton {
@@ -85,6 +80,10 @@ func (t *telegramUI) InstaInlineButton() tgbotapi.InlineKeyboardButton {
 func (t *telegramUI) MetronomeInlineButton() tgbotapi.InlineKeyboardButton {
 	metronomeButtonData := os.Getenv("METRONOME_TELEGRAM_URL")
 	return tgbotapi.InlineKeyboardButton{Text: "Сообщество бега в Триатлон парке (Metronome)", URL: &metronomeButtonData}
+}
+
+func (t *telegramUI) Participate(text string, callback *string) tgbotapi.InlineKeyboardButton {
+	return tgbotapi.InlineKeyboardButton{Text: text, CallbackData: callback}
 }
 
 func (t *telegramUI) BotanInlineButton() tgbotapi.InlineKeyboardButton {
@@ -114,6 +113,20 @@ func (t *telegramUI) MarathonInlineKeyboardMarkup() tgbotapi.InlineKeyboardMarku
 	)
 }
 
+func (t *telegramUI) AppointmentKeyboardMarkup() tgbotapi.InlineKeyboardMarkup {
+	callback := "appointment"
+	return tgbotapi.NewInlineKeyboardMarkup(
+		[]tgbotapi.InlineKeyboardButton{t.Participate("Принять участие", &callback)},
+	)
+}
+
+func (t *telegramUI) AppointmentDoneKeyboardMarkup() tgbotapi.InlineKeyboardMarkup {
+	callback := "do_not_participate"
+	return tgbotapi.NewInlineKeyboardMarkup(
+		[]tgbotapi.InlineKeyboardButton{t.Participate("Больше не участвовать", &callback)},
+	)
+}
+
 type TelegramUIRepository struct {
 	UI TelegramUI
 	YA YandexWeather
@@ -126,13 +139,27 @@ func NewTelegramUI() TelegramUI {
 func (r TelegramUIRepository) Init(bot *tgbotapi.BotAPI) {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-	updates, err := bot.GetUpdatesChan(u)
-
-	if err != nil {
-		log.Panic(err)
-	}
+	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
+		if update.CallbackQuery != nil {
+			// Respond to the callback query, telling Telegram to show the user
+			// a message with the data received.
+			tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
+
+			switch update.CallbackQuery.Data {
+			case "appointment":
+				msgText := update.CallbackQuery.Message.Text +
+					"\n - " + update.CallbackQuery.Message.ReplyToMessage.From.FirstName +
+					" " + update.CallbackQuery.Message.ReplyToMessage.From.LastName
+				answer := tgbotapi.NewEditMessageTextAndMarkup(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID,
+					msgText, r.UI.AppointmentDoneKeyboardMarkup())
+				bot.Send(answer)
+
+				break
+
+			}
+		}
 		if update.Message == nil { // ignore any non-Message Updates
 			continue
 		}
@@ -156,7 +183,8 @@ func (r TelegramUIRepository) Init(bot *tgbotapi.BotAPI) {
 			msg.Text = getRatingClub()
 			break
 		case "Запись на тренировку":
-			appointmentToRunning(bot, msg)
+			msg.Text = appointmentToRunning()
+			msg.ReplyMarkup = r.UI.AppointmentKeyboardMarkup()
 			break
 		case "Клуб Любителей Бега MaratHON":
 			msg.Text = r.UI.MarathonText()
@@ -205,55 +233,20 @@ func replyMessage(msg tgbotapi.MessageConfig, update tgbotapi.Update, bot *tgbot
 	}
 }
 
-func appointmentToRunning(bot *tgbotapi.BotAPI, msg tgbotapi.MessageConfig) {
-	apiUrl := os.Getenv("STRAVA_API_URL")
-	req, err := http.NewRequest("GET", apiUrl+"/clubs/540448/group_events", nil)
-	if err != nil {
-		log.Panic(err)
-	}
-	client := &http.Client{Timeout: 10 * time.Second}
-	req.Header.Add("Content-Type", `application/javascript`)
-	req.Header.Add("Accept", `application/javascript, application/ecmascript, application/x-ecmascript`)
-	req.Header.Add("Authorization", "Bearer "+os.Getenv("STRAVA_API_TOKEN"))
-
-	resp, err := client.Do(req)
-
-	if resp.Body != nil {
-		defer func(Body io.ReadCloser) {
-			err := Body.Close()
-			if err != nil {
-				log.Panic(err)
-			}
-		}(resp.Body)
-	}
-
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		log.Fatal(readErr)
-	}
-
-	var jsonMap []domain.Event
-	jsonErr := json.Unmarshal(body, &jsonMap)
-
-	if jsonErr != nil {
-		log.Fatal(jsonErr)
-	}
-
-	for i := 0; i < len(jsonMap); i++ {
-		sendMessage(msg.ChatID, bot, fmt.Sprintf("Название: %s \nОписание: %s \n Тип: %s\n Дата: %s\n Адрес: %s\n",
-			jsonMap[i].Title, jsonMap[i].Description, jsonMap[i].ActivityType, jsonMap[i].UpcomingOccurrences[0], jsonMap[i].Address))
-
-	}
-}
-
-func sendMessage(chatId int64, bot *tgbotapi.BotAPI, message string) {
-	config := tgbotapi.ChatConfig{ChatID: chatId}
-	chat, err := bot.GetChat(config)
-	if err != nil {
-		log.Panic(err)
-	}
-	newMessage := tgbotapi.NewMessage(chat.ID, message)
-	bot.Send(newMessage)
+func appointmentToRunning() string {
+	return "Тренировка клуба:\n" +
+		"- Вторник, Четверг,Суббота,\n" +
+		"- в 6:00 утра;\n" +
+		"- бежим 4,5 км\n" +
+		"- скоростные или интервальные примерно 3-4 км\n" +
+		"- заминка 3-4 км\n" +
+		"- по субботам длинная тренировка 15+ км\n\n" +
+		"- Разминка Амосова.\n" +
+		"- Тренировка;\n" +
+		"- Заминка, растяжка;\n" +
+		"- Шутки приветствуются.\n\n" +
+		"Место сбора 2гис Триатлон парк, Астана\n"
+	//	"https://2gis.kz/nur_sultan/geo/9570784863359586?m=71.456483%2C51.131237%2F17.4"
 }
 
 func getRatingClub() string {

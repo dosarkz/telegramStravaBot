@@ -3,7 +3,7 @@ package interfaces
 import (
 	"encoding/json"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/robfig/cron"
 	"io"
 	"io/ioutil"
@@ -31,7 +31,7 @@ func NewYandexWeather(bot *tgbotapi.BotAPI) YandexWeather {
 func (y *yandexWeather) Init() {
 	c := cron.New()
 	c.AddFunc("30 5 * * 2,4,6", func() {
-		config := tgbotapi.ChatConfig{ChatID: -1001451720943}
+		config := tgbotapi.ChatInfoConfig{ChatConfig: tgbotapi.ChatConfig{ChatID: -1001451720943}}
 		chat, err := y.bot.GetChat(config)
 		if err != nil {
 			log.Panic(err)
