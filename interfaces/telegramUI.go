@@ -155,9 +155,15 @@ func (r TelegramUIRepository) Init(bot *tgbotapi.BotAPI) {
 				answer := tgbotapi.NewEditMessageTextAndMarkup(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID,
 					msgText, r.UI.AppointmentDoneKeyboardMarkup())
 				bot.Send(answer)
-
 				break
-
+			case "do_not_participate":
+				msgText := update.CallbackQuery.Message.Text +
+					"\n - Не участвует " + update.CallbackQuery.Message.ReplyToMessage.From.FirstName +
+					" " + update.CallbackQuery.Message.ReplyToMessage.From.LastName
+				answer := tgbotapi.NewEditMessageTextAndMarkup(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID,
+					msgText, r.UI.AppointmentKeyboardMarkup())
+				bot.Send(answer)
+				break
 			}
 		}
 		if update.Message == nil { // ignore any non-Message Updates
