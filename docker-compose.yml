@@ -1,20 +1,23 @@
 version: "3.7"
 
 services:
-  database:
+  postgres:
     container_name: runbot_db
-    image: postgres
+    image: postgres:14
     restart: always
     env_file:
       - .env
     ports:
       - ${DOCKER_POSTGRES_PORT}
     volumes:
-      - data:/var/lib/postgresql/data
+      - postgres:/data/postgres
     environment:
       - POSTGRES_DB=$DATABASE_DB
       - POSTGRES_USER=$DATABASE_USER
       - POSTGRES_PASSWORD=$DATABASE_PASSWORD
+    networks:
+      - running
+
   server:
     container_name: runbot_app
     build:
@@ -25,10 +28,23 @@ services:
     volumes:
       - .:/go/src/telegramStravaBot
     depends_on:
-      - database
+      - postgres
+    command: ["./wait-for-it.sh"]
     networks:
-      - default
+      - running
     ports:
       - ${DOCKER_SERVER_PORT}
+  adminer:
+    image: adminer:4
+    container_name: "runbot_adminer"
+    restart: always
+    ports:
+      - ${DOCKER_ADMINER_PORT:-8669}:8080
+    networks:
+      - running
+networks:
+  running:
+    driver: "bridge"
 volumes:
-  data:
+  postgres:
+  pgadmin:

@@ -5,7 +5,11 @@ import (
 	"log"
 	"os"
 	"telegramStravaBot/config"
-	"telegramStravaBot/data/database"
+	db "telegramStravaBot/data/database"
+	userStore "telegramStravaBot/data/users"
+	workoutStore "telegramStravaBot/data/workouts"
+	"telegramStravaBot/domain/users"
+	"telegramStravaBot/domain/workouts"
 	"telegramStravaBot/infrastructure"
 	"telegramStravaBot/interfaces"
 )
@@ -23,7 +27,18 @@ func main() {
 		panic(err)
 	}
 
-	_, err = database.Connect(configuration.Database)
+	// establish DB connection
+	database, err := db.Connect(configuration)
+	if err != nil {
+		panic(err)
+	}
+
+	// initialize repos and services using DI
+	userRepo := userStore.New(database)
+	userService := users.NewService(userRepo)
+
+	workoutRepo := workoutStore.New(database)
+	workoutService := workouts.NewService(workoutRepo)
 
 	bot.Debug = true
 	log.Printf("Authorized on account %s", bot.Self.UserName)
@@ -32,6 +47,7 @@ func main() {
 	ya.Init()
 
 	ui := interfaces.NewTelegramUI()
-	telegramRepo := interfaces.TelegramUIRepository{UI: ui, YA: ya}
-	telegramRepo.Init(bot)
+	telegramRepo := interfaces.TelegramUIRepository{UI: ui, YA: ya, User: userService, Workout: workoutService,
+		Bot: bot}
+	telegramRepo.Init()
 }

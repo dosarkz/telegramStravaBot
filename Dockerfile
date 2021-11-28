@@ -1,32 +1,37 @@
-FROM golang:1.14.6-alpine3.12 as builder
+FROM golang:1.16-alpine3.14 AS build
 
-COPY go.mod go.sum /go/src/telegramStravaBot/
-WORKDIR /go/src/telegramStravaBot
+WORKDIR /app
+
+COPY go.mod ./
+COPY go.sum ./
 RUN go mod download
-COPY . /go/src/telegramStravaBot
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o build/telegramStravaBot telegramStravaBot
 
-RUN apk add --no-cache bash git openssh
+COPY . .
+
+RUN GOOS=linux go build -o /build
 
 
-FROM alpine
+FROM alpine:3.14
 
-RUN apk add --no-cache  make musl-dev go bash git openssh ca-certificates && update-ca-certificates
-COPY --from=builder /go/src/telegramStravaBot/build/telegramStravaBot /usr/bin/telegramStravaBot
-COPY --from=builder  /go/src/telegramStravaBot/.env /go/.env
-# Configure Go
-ENV GOROOT /usr/lib/go
-ENV GOPATH /go
-ENV PATH /go/bin:$PATH
+ARG USER=default
+ENV HOME /home/$USER
 
-RUN mkdir -p ${GOPATH}/src ${GOPATH}/bin
+# install sudo as root
+RUN apk add --update sudo
 
-# Install Glide
+# add new user
+RUN adduser -D $USER \
+        && echo "$USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USER \
+        && chmod 0440 /etc/sudoers.d/$USER
 
-WORKDIR $GOPATH
+USER $USER
 
-CMD ["make"]
+WORKDIR /
 
-EXPOSE 8080 8080
+COPY --from=build /build /build
+COPY --from=build  /app/.env /.env
+COPY ./data/database/migrations/ /data/database/migrations/
 
-ENTRYPOINT ["/usr/bin/telegramStravaBot"]
+EXPOSE 8080
+
+ENTRYPOINT ["/build"]

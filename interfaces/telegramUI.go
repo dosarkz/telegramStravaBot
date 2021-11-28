@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"os"
 	"telegramStravaBot/domain"
+	user "telegramStravaBot/domain/users"
+	"telegramStravaBot/domain/workouts"
 	"time"
 )
 
@@ -128,41 +130,43 @@ func (t *telegramUI) AppointmentDoneKeyboardMarkup() tgbotapi.InlineKeyboardMark
 }
 
 type TelegramUIRepository struct {
-	UI TelegramUI
-	YA YandexWeather
+	UI      TelegramUI
+	YA      YandexWeather
+	User    user.UserService
+	Workout workouts.WorkoutService
+	Bot     *tgbotapi.BotAPI
 }
 
 func NewTelegramUI() TelegramUI {
 	return &telegramUI{}
 }
 
-func (r TelegramUIRepository) Init(bot *tgbotapi.BotAPI) {
+func (r TelegramUIRepository) Init() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-	updates := bot.GetUpdatesChan(u)
+	updates := r.Bot.GetUpdatesChan(u)
 
 	for update := range updates {
 		if update.CallbackQuery != nil {
 			// Respond to the callback query, telling Telegram to show the user
 			// a message with the data received.
-			tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
+			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
+			if _, err := r.Bot.Request(callback); err != nil {
+				panic(err)
+			}
 
 			switch update.CallbackQuery.Data {
 			case "appointment":
-				msgText := update.CallbackQuery.Message.Text +
-					"\n - " + update.CallbackQuery.Message.ReplyToMessage.From.FirstName +
-					" " + update.CallbackQuery.Message.ReplyToMessage.From.LastName
+				msgText := update.CallbackQuery.Message.ReplyToMessage.From.UserName
 				answer := tgbotapi.NewEditMessageTextAndMarkup(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID,
 					msgText, r.UI.AppointmentDoneKeyboardMarkup())
-				bot.Send(answer)
+				r.Bot.Send(answer)
 				break
 			case "do_not_participate":
-				msgText := update.CallbackQuery.Message.Text +
-					"\n - Не участвует " + update.CallbackQuery.Message.ReplyToMessage.From.FirstName +
-					" " + update.CallbackQuery.Message.ReplyToMessage.From.LastName
+				msgText := update.CallbackQuery.Message.ReplyToMessage.From.UserName
 				answer := tgbotapi.NewEditMessageTextAndMarkup(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID,
 					msgText, r.UI.AppointmentKeyboardMarkup())
-				bot.Send(answer)
+				r.Bot.Send(answer)
 				break
 			}
 		}
@@ -189,8 +193,7 @@ func (r TelegramUIRepository) Init(bot *tgbotapi.BotAPI) {
 			msg.Text = getRatingClub()
 			break
 		case "Запись на тренировку":
-			msg.Text = appointmentToRunning()
-			msg.ReplyMarkup = r.UI.AppointmentKeyboardMarkup()
+			appointmentToRunning(r, update.Message.Chat.ID)
 			break
 		case "Клуб Любителей Бега MaratHON":
 			msg.Text = r.UI.MarathonText()
@@ -225,7 +228,7 @@ func (r TelegramUIRepository) Init(bot *tgbotapi.BotAPI) {
 
 		if msg.Text != update.Message.Text {
 			fmt.Printf(msg.Text)
-			replyMessage(msg, update, bot)
+			replyMessage(msg, update, r.Bot)
 		}
 	}
 }
@@ -239,20 +242,27 @@ func replyMessage(msg tgbotapi.MessageConfig, update tgbotapi.Update, bot *tgbot
 	}
 }
 
-func appointmentToRunning() string {
-	return "Тренировка клуба:\n" +
-		"- Вторник, Четверг,Суббота,\n" +
-		"- в 6:00 утра;\n" +
-		"- бежим 4,5 км\n" +
-		"- скоростные или интервальные примерно 3-4 км\n" +
-		"- заминка 3-4 км\n" +
-		"- по субботам длинная тренировка 15+ км\n\n" +
-		"- Разминка Амосова.\n" +
-		"- Тренировка;\n" +
-		"- Заминка, растяжка;\n" +
-		"- Шутки приветствуются.\n\n" +
-		"Место сбора 2гис Триатлон парк, Астана\n"
-	//	"https://2gis.kz/nur_sultan/geo/9570784863359586?m=71.456483%2C51.131237%2F17.4"
+func appointmentToRunning(r TelegramUIRepository, chatId int64) {
+	ws, err := r.Workout.ListWorkouts()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	var responseItems = make([]workouts.WorkoutResponse, len(ws))
+
+	for i, element := range ws {
+		responseItems[i] = *workouts.ToResponseModel(&element)
+	}
+
+	for i := 0; i < len(responseItems); i++ {
+		msg := fmt.Sprintf("%s\n %s\n Дата: %s\n", responseItems[i].Title, responseItems[i].Description,
+			responseItems[i].CreatedAt)
+
+		newMessage := tgbotapi.NewMessage(chatId, msg)
+		newMessage.ReplyMarkup = r.UI.AppointmentKeyboardMarkup()
+		newMessage.ParseMode = "markdown"
+		r.Bot.Send(newMessage)
+	}
 }
 
 func getRatingClub() string {
