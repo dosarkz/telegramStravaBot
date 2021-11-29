@@ -20,6 +20,10 @@ type WorkoutResponse struct {
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
+type ListWorkoutResponse struct {
+	Data []WorkoutResponse `json:"data"`
+}
+
 func ToResponseModel(entity *Workout) *WorkoutResponse {
 	return &WorkoutResponse{
 		Id:          entity.Id,

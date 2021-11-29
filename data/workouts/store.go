@@ -10,10 +10,10 @@ import (
 const (
 	createError = "Error in creating new user"
 	readError   = "Error in finding user in the database"
-	listError   = "Error in getting candidate from the database"
+	listError   = "Error in getting workout from the database"
 )
 
-// Store struct manages interactions with candidate store
+// Store struct manages interactions with workout store
 type Store struct {
 	db *gorm.DB
 }

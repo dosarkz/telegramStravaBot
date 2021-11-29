@@ -2,7 +2,7 @@
 # wait-for-postgres.sh
 
 set -e
-
+echo "Postgres handler"
 host="$1"
 shift
 
