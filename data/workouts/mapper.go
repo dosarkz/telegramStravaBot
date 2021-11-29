@@ -21,3 +21,21 @@ func toDomainModel(entity *Workout) *domain.Workout {
 		UpdatedAt:   entity.UpdatedAt,
 	}
 }
+
+func toWorkoutUserDBModel(entity *domain.WorkoutUser) *WorkoutUser {
+	return &WorkoutUser{
+		Id:        entity.Id,
+		UserID:    entity.UserID,
+		WorkoutId: entity.WorkoutId,
+	}
+}
+
+func toWorkoutUserDomainModel(entity *WorkoutUser) *domain.WorkoutUser {
+	return &domain.WorkoutUser{
+		Id:        entity.Id,
+		UserID:    entity.UserID,
+		WorkoutId: entity.WorkoutId,
+		CreatedAt: entity.CreatedAt,
+		UpdatedAt: entity.UpdatedAt,
+	}
+}

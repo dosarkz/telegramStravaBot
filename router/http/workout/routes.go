@@ -12,7 +12,7 @@ func NewRoutesFactory(group *gin.RouterGroup) func(service workouts.WorkoutServi
 		controller.Service = service
 		group.GET("/", controller.Index)
 		group.GET("/:id", controller.Show)
-		group.POST("/", controller.Create)
+		group.POST("/", controller.CreateWorkout)
 	}
 
 	return RoutesFactory

@@ -5,4 +5,5 @@ type WorkoutRepository interface {
 	UpdateWorkout(*Workout) (*Workout, error)
 	ReadWorkout(int) (*Workout, error)
 	ListWorkouts() ([]Workout, error)
+	CreateWorkoutUser(*WorkoutUser) (*WorkoutUser, error)
 }

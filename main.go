@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
-	"net/http"
 	"os"
 	"telegramStravaBot/config"
 	db "telegramStravaBot/data/database"
@@ -14,7 +12,6 @@ import (
 	"telegramStravaBot/domain/workouts"
 	"telegramStravaBot/infrastructure"
 	"telegramStravaBot/interfaces"
-	router "telegramStravaBot/router/http"
 )
 
 func main() {
@@ -49,16 +46,16 @@ func main() {
 	ya := interfaces.NewYandexWeather(bot)
 	ya.Init()
 
-	httpRouter := router.NewHTTPHandler(workoutService)
-	err = http.ListenAndServe(":"+configuration.Port, httpRouter)
-	fmt.Printf("Connect port %s", configuration.Port)
-	if err != nil {
-		panic(err)
-	}
-
 	ui := interfaces.NewTelegramUI()
 	telegramRepo := interfaces.TelegramUIRepository{UI: ui, YA: ya, User: userService, Workout: workoutService,
 		Bot: bot}
 	telegramRepo.Init()
+
+	//httpRouter := router.NewHTTPHandler(workoutService)
+	//err = http.ListenAndServe(":"+configuration.Port, httpRouter)
+	//fmt.Printf("Connect port %s", configuration.Port)
+	//if err != nil {
+	//	panic(err)
+	//}
 
 }

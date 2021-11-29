@@ -6,6 +6,7 @@ type UserService interface {
 	ReadUser(id int) (*User, error)
 	UpdateUser(*User) (*User, error)
 	ListUsers() ([]User, error)
+	FindUserByTelegramId(id int64) (*User, error)
 }
 
 // Service struct handles author business logic tasks.
@@ -20,6 +21,11 @@ func (svc *Service) CreateUser(user *User) (*User, error) {
 func (svc *Service) ReadUser(id int) (*User, error) {
 	return svc.repository.ReadUser(id)
 }
+
+func (svc Service) FindUserByTelegramId(id int64) (*User, error) {
+	return svc.repository.FindUserByTelegramId(id)
+}
+
 func (svc *Service) UpdateUser(user *User) (*User, error) {
 	return svc.repository.UpdateUser(user)
 }

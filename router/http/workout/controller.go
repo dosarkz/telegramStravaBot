@@ -31,8 +31,11 @@ func (u *Controller) Index(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (u *Controller) Create(c *gin.Context) {
+func (u *Controller) CreateWorkout(c *gin.Context) {
+	c.JSON(201, gin.H{"message": "Workout created"})
+}
 
+func (u *Controller) CreateWorkoutUser(c *gin.Context) {
 	c.JSON(201, gin.H{"message": "Workout created"})
 }
 

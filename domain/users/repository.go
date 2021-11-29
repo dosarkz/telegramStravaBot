@@ -5,4 +5,5 @@ type UserRepository interface {
 	UpdateUser(*User) (*User, error)
 	ReadUser(int) (*User, error)
 	ListUsers() ([]User, error)
+	FindUserByTelegramId(int64) (*User, error)
 }

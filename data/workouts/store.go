@@ -18,6 +18,17 @@ type Store struct {
 	db *gorm.DB
 }
 
+func (s *Store) CreateWorkoutUser(workoutUser *domain.WorkoutUser) (*domain.WorkoutUser, error) {
+	entity := toWorkoutUserDBModel(workoutUser)
+
+	if err := s.db.Create(entity).Error; err != nil {
+		appErr := domainErrors.NewAppError(errors.Wrap(err, createError), domainErrors.RepositoryError)
+		return nil, appErr
+	}
+
+	return toWorkoutUserDomainModel(entity), nil
+}
+
 // New creates a new Store struct
 func New(db *gorm.DB) *Store {
 	db.AutoMigrate(&Workout{})

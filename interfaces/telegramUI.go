@@ -10,6 +10,8 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"telegramStravaBot/domain"
 	user "telegramStravaBot/domain/users"
 	"telegramStravaBot/domain/workouts"
@@ -20,13 +22,13 @@ type TelegramUI interface {
 	MainMenu() tgbotapi.ReplyKeyboardMarkup
 	StravaInlineButton() tgbotapi.InlineKeyboardButton
 	InstaInlineButton() tgbotapi.InlineKeyboardButton
-	Participate(text string, callback *string) tgbotapi.InlineKeyboardButton
+	Participate(text string, callback string) tgbotapi.InlineKeyboardButton
 	MetronomeInlineButton() tgbotapi.InlineKeyboardButton
 	BotanInlineButton() tgbotapi.InlineKeyboardButton
 	MetroInlineKeyboardMarkup() tgbotapi.InlineKeyboardMarkup
 	MarathonInlineKeyboardMarkup() tgbotapi.InlineKeyboardMarkup
-	AppointmentKeyboardMarkup() tgbotapi.InlineKeyboardMarkup
-	AppointmentDoneKeyboardMarkup() tgbotapi.InlineKeyboardMarkup
+	AppointmentKeyboardMarkup(workoutId int) tgbotapi.InlineKeyboardMarkup
+	AppointmentDoneKeyboardMarkup(workoutId int) tgbotapi.InlineKeyboardMarkup
 	HideMenu() tgbotapi.ReplyKeyboardRemove
 	MarathonText() string
 }
@@ -84,8 +86,8 @@ func (t *telegramUI) MetronomeInlineButton() tgbotapi.InlineKeyboardButton {
 	return tgbotapi.InlineKeyboardButton{Text: "Сообщество бега в Триатлон парке (Metronome)", URL: &metronomeButtonData}
 }
 
-func (t *telegramUI) Participate(text string, callback *string) tgbotapi.InlineKeyboardButton {
-	return tgbotapi.InlineKeyboardButton{Text: text, CallbackData: callback}
+func (t *telegramUI) Participate(text string, callback string) tgbotapi.InlineKeyboardButton {
+	return tgbotapi.InlineKeyboardButton{Text: text, CallbackData: &callback}
 }
 
 func (t *telegramUI) BotanInlineButton() tgbotapi.InlineKeyboardButton {
@@ -115,17 +117,17 @@ func (t *telegramUI) MarathonInlineKeyboardMarkup() tgbotapi.InlineKeyboardMarku
 	)
 }
 
-func (t *telegramUI) AppointmentKeyboardMarkup() tgbotapi.InlineKeyboardMarkup {
-	callback := "appointment"
+func (t *telegramUI) AppointmentKeyboardMarkup(workoutId int) tgbotapi.InlineKeyboardMarkup {
+	callbackData := "appointment_" + strconv.Itoa(workoutId)
 	return tgbotapi.NewInlineKeyboardMarkup(
-		[]tgbotapi.InlineKeyboardButton{t.Participate("Принять участие", &callback)},
+		[]tgbotapi.InlineKeyboardButton{t.Participate("Принять участие", callbackData)},
 	)
 }
 
-func (t *telegramUI) AppointmentDoneKeyboardMarkup() tgbotapi.InlineKeyboardMarkup {
-	callback := "do_not_participate"
+func (t *telegramUI) AppointmentDoneKeyboardMarkup(workoutId int) tgbotapi.InlineKeyboardMarkup {
+	callbackData := "leave_" + strconv.Itoa(workoutId)
 	return tgbotapi.NewInlineKeyboardMarkup(
-		[]tgbotapi.InlineKeyboardButton{t.Participate("Больше не участвовать", &callback)},
+		[]tgbotapi.InlineKeyboardButton{t.Participate("Больше не участвовать", callbackData)},
 	)
 }
 
@@ -154,18 +156,22 @@ func (r TelegramUIRepository) Init() {
 			if _, err := r.Bot.Request(callback); err != nil {
 				panic(err)
 			}
+			callbackData := strings.Split(update.CallbackQuery.Data, "_")
+			//fmt.Println(callbackData[0])
+			workoutId, _ := strconv.Atoi(callbackData[1])
 
-			switch update.CallbackQuery.Data {
+			switch callbackData[0] {
 			case "appointment":
-				msgText := update.CallbackQuery.Message.ReplyToMessage.From.UserName
-				answer := tgbotapi.NewEditMessageTextAndMarkup(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID,
-					msgText, r.UI.AppointmentDoneKeyboardMarkup())
+				msgText := getAppointmentText(update, 1, r.User, workoutId)
+				answer := tgbotapi.NewEditMessageTextAndMarkup(update.CallbackQuery.Message.Chat.ID,
+					update.CallbackQuery.Message.MessageID,
+					msgText, r.UI.AppointmentDoneKeyboardMarkup(workoutId))
 				r.Bot.Send(answer)
 				break
-			case "do_not_participate":
-				msgText := update.CallbackQuery.Message.ReplyToMessage.From.UserName
+			case "leave":
+				msgText := getAppointmentText(update, 0, r.User, workoutId)
 				answer := tgbotapi.NewEditMessageTextAndMarkup(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID,
-					msgText, r.UI.AppointmentKeyboardMarkup())
+					msgText, r.UI.AppointmentKeyboardMarkup(workoutId))
 				r.Bot.Send(answer)
 				break
 			}
@@ -193,7 +199,7 @@ func (r TelegramUIRepository) Init() {
 			msg.Text = getRatingClub()
 			break
 		case "Запись на тренировку":
-			appointmentToRunning(r, update.Message.Chat.ID)
+			appointmentToRunning(r, update)
 			break
 		case "Клуб Любителей Бега MaratHON":
 			msg.Text = r.UI.MarathonText()
@@ -233,6 +239,40 @@ func (r TelegramUIRepository) Init() {
 	}
 }
 
+func getAppointmentText(update tgbotapi.Update, typeId int, repository user.UserService, workoutId int) string {
+	getUser, err := repository.FindUserByTelegramId(update.CallbackQuery.From.ID)
+	if err != nil {
+		newUser := user.User{
+			Username:   update.CallbackQuery.From.FirstName + " " + update.CallbackQuery.From.LastName,
+			TelegramId: update.CallbackQuery.From.ID,
+		}
+		getUser, err = repository.CreateUser(&newUser)
+		if err != nil {
+			log.Panic(err)
+		}
+	}
+
+	switch typeId {
+	case 1:
+		registerUserWorkout(update, getUser, workoutId)
+		break
+	case 0:
+		leaveUserWorkout(update, getUser, workoutId)
+		break
+	}
+	text := update.CallbackQuery.Message.Text
+
+	return text
+}
+
+func registerUserWorkout(update tgbotapi.Update, user *user.User, workoutId int) {
+
+}
+
+func leaveUserWorkout(update tgbotapi.Update, user *user.User, workoutId int) {
+
+}
+
 func replyMessage(msg tgbotapi.MessageConfig, update tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	msg.ReplyToMessageID = update.Message.MessageID
 	msg.ParseMode = "markdown"
@@ -242,7 +282,7 @@ func replyMessage(msg tgbotapi.MessageConfig, update tgbotapi.Update, bot *tgbot
 	}
 }
 
-func appointmentToRunning(r TelegramUIRepository, chatId int64) {
+func appointmentToRunning(r TelegramUIRepository, update tgbotapi.Update) {
 	ws, err := r.Workout.ListWorkouts()
 	if err != nil {
 		log.Panic(err)
@@ -258,8 +298,8 @@ func appointmentToRunning(r TelegramUIRepository, chatId int64) {
 		msg := fmt.Sprintf("%s\n %s\n Дата: %s\n", responseItems[i].Title, responseItems[i].Description,
 			responseItems[i].CreatedAt)
 
-		newMessage := tgbotapi.NewMessage(chatId, msg)
-		newMessage.ReplyMarkup = r.UI.AppointmentKeyboardMarkup()
+		newMessage := tgbotapi.NewMessage(update.Message.Chat.ID, msg)
+		newMessage.ReplyMarkup = r.UI.AppointmentKeyboardMarkup(responseItems[i].Id)
 		newMessage.ParseMode = "markdown"
 		r.Bot.Send(newMessage)
 	}

@@ -85,10 +85,10 @@ func (s *Store) ListUsers() ([]domain.User, error) {
 	return users, nil
 }
 
-func (s *Store) FindByAppId(id int) (*domain.User, error) {
+func (s *Store) FindUserByTelegramId(id int64) (*domain.User, error) {
 	result := &User{}
 
-	query := s.db.Where("app_id = ?", id).First(result)
+	query := s.db.Where("telegram_id = ?", id).First(result)
 
 	if query.RecordNotFound() {
 		appErr := domainErrors.NewAppErrorWithType(domainErrors.NotFound)
