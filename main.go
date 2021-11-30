@@ -37,7 +37,7 @@ func main() {
 	userRepo := userStore.New(database)
 	userService := users.NewService(userRepo)
 
-	workoutRepo := workoutStore.New(database)
+	workoutRepo := workoutStore.New(database, database)
 	workoutService := workouts.NewService(workoutRepo)
 
 	bot.Debug = true

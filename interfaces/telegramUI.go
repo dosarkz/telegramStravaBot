@@ -120,14 +120,14 @@ func (t *telegramUI) MarathonInlineKeyboardMarkup() tgbotapi.InlineKeyboardMarku
 func (t *telegramUI) AppointmentKeyboardMarkup(workoutId int) tgbotapi.InlineKeyboardMarkup {
 	callbackData := "appointment_" + strconv.Itoa(workoutId)
 	return tgbotapi.NewInlineKeyboardMarkup(
-		[]tgbotapi.InlineKeyboardButton{t.Participate("Принять участие", callbackData)},
+		[]tgbotapi.InlineKeyboardButton{t.Participate("✅Приму участие", callbackData)},
 	)
 }
 
 func (t *telegramUI) AppointmentDoneKeyboardMarkup(workoutId int) tgbotapi.InlineKeyboardMarkup {
 	callbackData := "leave_" + strconv.Itoa(workoutId)
 	return tgbotapi.NewInlineKeyboardMarkup(
-		[]tgbotapi.InlineKeyboardButton{t.Participate("Больше не участвовать", callbackData)},
+		[]tgbotapi.InlineKeyboardButton{t.Participate("✋Пропущу", callbackData)},
 	)
 }
 
@@ -162,16 +162,18 @@ func (r TelegramUIRepository) Init() {
 
 			switch callbackData[0] {
 			case "appointment":
-				msgText := getAppointmentText(update, 1, r.User, workoutId)
+				msgText := getAppointmentText(update, 1, r, workoutId)
 				answer := tgbotapi.NewEditMessageTextAndMarkup(update.CallbackQuery.Message.Chat.ID,
 					update.CallbackQuery.Message.MessageID,
 					msgText, r.UI.AppointmentDoneKeyboardMarkup(workoutId))
+				answer.ParseMode = "markdown"
 				r.Bot.Send(answer)
 				break
 			case "leave":
-				msgText := getAppointmentText(update, 0, r.User, workoutId)
+				msgText := getAppointmentText(update, 0, r, workoutId)
 				answer := tgbotapi.NewEditMessageTextAndMarkup(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID,
 					msgText, r.UI.AppointmentKeyboardMarkup(workoutId))
+				answer.ParseMode = "markdown"
 				r.Bot.Send(answer)
 				break
 			}
@@ -239,14 +241,14 @@ func (r TelegramUIRepository) Init() {
 	}
 }
 
-func getAppointmentText(update tgbotapi.Update, typeId int, repository user.UserService, workoutId int) string {
-	getUser, err := repository.FindUserByTelegramId(update.CallbackQuery.From.ID)
+func getAppointmentText(update tgbotapi.Update, typeId int, r TelegramUIRepository, workoutId int) string {
+	getUser, err := r.User.FindUserByTelegramId(update.CallbackQuery.From.ID)
 	if err != nil {
 		newUser := user.User{
 			Username:   update.CallbackQuery.From.FirstName + " " + update.CallbackQuery.From.LastName,
 			TelegramId: update.CallbackQuery.From.ID,
 		}
-		getUser, err = repository.CreateUser(&newUser)
+		getUser, err = r.User.CreateUser(&newUser)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -254,23 +256,73 @@ func getAppointmentText(update tgbotapi.Update, typeId int, repository user.User
 
 	switch typeId {
 	case 1:
-		registerUserWorkout(update, getUser, workoutId)
+		registerUserWorkout(getUser, workoutId, r.Workout)
 		break
 	case 0:
-		leaveUserWorkout(update, getUser, workoutId)
+		leaveUserWorkout(getUser, workoutId, r.Workout)
 		break
 	}
-	text := update.CallbackQuery.Message.Text
+	workout, err := r.Workout.ReadWorkout(workoutId)
+	if err != nil {
+		log.Panic(err)
+	}
 
+	text := fmt.Sprintf("🔥Тренировка № %d\n 🏃‍♀ 🏃 %s\n %s\n %s\n %s", workoutId, workout.CreatedAt.Format(time.RFC822), workout.Title, workout.Description,
+		getWorkoutUserList(workoutId, r))
 	return text
 }
 
-func registerUserWorkout(update tgbotapi.Update, user *user.User, workoutId int) {
+func getWorkoutUserList(workoutId int, r TelegramUIRepository) string {
+	wc, err := r.Workout.ListWorkoutMembers(workoutId)
+	if err != nil {
+		log.Panic(err)
+	}
 
+	if len(wc) > 0 {
+		msg := "** Участники **\n"
+		for i := 0; i < len(wc); i++ {
+			readUser, err := r.User.ReadUser(wc[i].UserID)
+			if err != nil {
+				log.Panic(err)
+			}
+			msg += fmt.Sprintf("%d. %s\n", i+1, readUser.Username)
+		}
+		return msg
+	} else {
+		return ""
+	}
 }
 
-func leaveUserWorkout(update tgbotapi.Update, user *user.User, workoutId int) {
+func registerUserWorkout(user *user.User, workoutId int, repository workouts.WorkoutRepository) *workouts.WorkoutUser {
+	getWorkoutUser, err := repository.FindBy(user.Id, workoutId)
 
+	if err != nil {
+		newWorkoutUser := workouts.WorkoutUser{
+			UserID:    user.Id,
+			WorkoutId: uint(workoutId),
+		}
+		getWorkoutUser, err = repository.CreateWorkoutUser(&newWorkoutUser)
+		if err != nil {
+			log.Panic(err)
+		}
+	}
+
+	return getWorkoutUser
+}
+
+func leaveUserWorkout(user *user.User, workoutId int, repository workouts.WorkoutRepository) {
+	getWorkoutUser, err := repository.FindBy(user.Id, workoutId)
+	if err != nil {
+		fmt.Println(err)
+		//log.Panic(err)
+		return
+	}
+	fmt.Println(getWorkoutUser)
+	_, err = repository.Delete(getWorkoutUser)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 }
 
 func replyMessage(msg tgbotapi.MessageConfig, update tgbotapi.Update, bot *tgbotapi.BotAPI) {
@@ -294,9 +346,15 @@ func appointmentToRunning(r TelegramUIRepository, update tgbotapi.Update) {
 		responseItems[i] = *workouts.ToResponseModel(&element)
 	}
 
+	if len(responseItems) == 0 {
+		r.Bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "🎽Ближайших тренировок не наблюдается, "+
+			"отдыхай и восстанавливайся😴."))
+	}
+
 	for i := 0; i < len(responseItems); i++ {
-		msg := fmt.Sprintf("%s\n %s\n Дата: %s\n", responseItems[i].Title, responseItems[i].Description,
-			responseItems[i].CreatedAt)
+		msg := fmt.Sprintf("🔥Тренировка № %d\n 🏃‍♀ 🏃 %s\n %s\n %s\n %s\n", responseItems[i].Id,
+			responseItems[i].CreatedAt.Format(time.RFC822),
+			responseItems[i].Title, responseItems[i].Description, getWorkoutUserList(responseItems[i].Id, r))
 
 		newMessage := tgbotapi.NewMessage(update.Message.Chat.ID, msg)
 		newMessage.ReplyMarkup = r.UI.AppointmentKeyboardMarkup(responseItems[i].Id)

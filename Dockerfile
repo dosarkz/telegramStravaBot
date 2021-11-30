@@ -33,6 +33,6 @@ COPY --from=build  /app/.env /.env
 COPY --from=build  /app/wait-for-postgres.sh /wait-for-postgres.sh
 COPY ./data/database/migrations/ /data/database/migrations/
 
-EXPOSE 3000
+EXPOSE 8000
 
 ENTRYPOINT ["/build"]

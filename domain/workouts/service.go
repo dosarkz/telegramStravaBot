@@ -6,7 +6,10 @@ type WorkoutService interface {
 	ReadWorkout(id int) (*Workout, error)
 	UpdateWorkout(*Workout) (*Workout, error)
 	ListWorkouts() ([]Workout, error)
+	ListWorkoutMembers(workoutId int) ([]WorkoutUser, error)
 	CreateWorkoutUser(user *WorkoutUser) (*WorkoutUser, error)
+	FindBy(userId int, workoutId int) (*WorkoutUser, error)
+	Delete(workoutUser *WorkoutUser) (bool, error)
 }
 
 // Service struct handles author business logic tasks.
@@ -29,8 +32,20 @@ func (svc *Service) ListWorkouts() ([]Workout, error) {
 	return svc.repository.ListWorkouts()
 }
 
+func (svc *Service) ListWorkoutMembers(workoutId int) ([]WorkoutUser, error) {
+	return svc.repository.ListWorkoutMembers(workoutId)
+}
+
 func (svc *Service) CreateWorkoutUser(WorkoutUser *WorkoutUser) (*WorkoutUser, error) {
 	return svc.repository.CreateWorkoutUser(WorkoutUser)
+}
+
+func (svc *Service) FindBy(userId int, workoutId int) (*WorkoutUser, error) {
+	return svc.repository.FindBy(userId, workoutId)
+}
+
+func (svc *Service) Delete(workoutUser *WorkoutUser) (bool, error) {
+	return svc.repository.Delete(workoutUser)
 }
 
 // NewService creates a new service struct

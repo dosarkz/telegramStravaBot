@@ -4,7 +4,7 @@ CREATE TABLE workout_users
     user_id    integer   NOT NULL,
     CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users (id),
     workout_id    integer   NOT NULL,
-    CONSTRAINT fk_workout FOREIGN KEY (workout_id) REFERENCES workout_users (id),
+    CONSTRAINT fk_workout_user FOREIGN KEY (workout_id) REFERENCES workouts (id),
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
     deleted_at TIMESTAMP NULL

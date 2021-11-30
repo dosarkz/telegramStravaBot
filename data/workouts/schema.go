@@ -1,6 +1,7 @@
 package workouts
 
 import (
+	"telegramStravaBot/data/users"
 	"time"
 )
 
@@ -10,14 +11,15 @@ type Workout struct {
 	Description  string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
-	WorkoutUsers []WorkoutUser
+	WorkoutUsers []WorkoutUser `gorm:"foreignKey:WorkoutId,references:Id"`
 }
 
 type WorkoutUser struct {
 	Id        int `gorm:"primaryKey"`
-	UserID    uint
+	UserID    int
+	User      users.User
 	WorkoutId uint
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	DeletedAt time.Time
+	DeletedAt time.Time `gorm:"default:null"`
 }

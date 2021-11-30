@@ -1,6 +1,7 @@
 package workouts
 
 import (
+	"fmt"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	domainErrors "telegramStravaBot/domain/errors"
@@ -15,26 +16,18 @@ const (
 
 // Store struct manages interactions with workout store
 type Store struct {
-	db *gorm.DB
-}
-
-func (s *Store) CreateWorkoutUser(workoutUser *domain.WorkoutUser) (*domain.WorkoutUser, error) {
-	entity := toWorkoutUserDBModel(workoutUser)
-
-	if err := s.db.Create(entity).Error; err != nil {
-		appErr := domainErrors.NewAppError(errors.Wrap(err, createError), domainErrors.RepositoryError)
-		return nil, appErr
-	}
-
-	return toWorkoutUserDomainModel(entity), nil
+	db            *gorm.DB
+	workoutUserDb *gorm.DB
 }
 
 // New creates a new Store struct
-func New(db *gorm.DB) *Store {
+func New(db *gorm.DB, workoutUserDb *gorm.DB) *Store {
 	db.AutoMigrate(&Workout{})
+	workoutUserDb.AutoMigrate(&WorkoutUser{})
 
 	return &Store{
-		db: db,
+		db:            db,
+		workoutUserDb: workoutUserDb,
 	}
 }
 
@@ -94,4 +87,63 @@ func (s *Store) ListWorkouts() ([]domain.Workout, error) {
 	}
 
 	return workouts, nil
+}
+
+func (s *Store) ListWorkoutMembers(workoutId int) ([]domain.WorkoutUser, error) {
+	var results []WorkoutUser
+
+	if err := s.db.Where("workout_id = ?", workoutId).Find(&results).Error; err != nil {
+		appErr := domainErrors.NewAppError(errors.Wrap(err, listError), domainErrors.RepositoryError)
+		return nil, appErr
+	}
+
+	var workouts = make([]domain.WorkoutUser, len(results))
+
+	for i, element := range results {
+		workouts[i] = *toWorkoutUserDomainModel(&element)
+	}
+
+	return workouts, nil
+}
+
+func (s *Store) FindBy(userId int, workoutId int) (*domain.WorkoutUser, error) {
+	result := &WorkoutUser{}
+	fmt.Println("test:  ", userId, workoutId)
+	query := s.workoutUserDb.Where("user_id = ? and workout_id = ?", userId, workoutId).First(result)
+
+	if query.RecordNotFound() {
+		appErr := domainErrors.NewAppErrorWithType(domainErrors.NotFound)
+		return nil, appErr
+	}
+
+	if err := query.Error; err != nil {
+		appErr := domainErrors.NewAppError(errors.Wrap(err, readError), domainErrors.RepositoryError)
+		return nil, appErr
+	}
+
+	return toWorkoutUserDomainModel(result), nil
+}
+
+func (s *Store) CreateWorkoutUser(workoutUser *domain.WorkoutUser) (*domain.WorkoutUser, error) {
+	entity := toWorkoutUserDBModel(workoutUser)
+
+	if err := s.db.Create(entity).Error; err != nil {
+		appErr := domainErrors.NewAppError(errors.Wrap(err, createError), domainErrors.RepositoryError)
+		return nil, appErr
+	}
+
+	return toWorkoutUserDomainModel(entity), nil
+}
+
+func (s *Store) Delete(workoutUser *domain.WorkoutUser) (bool, error) {
+
+	entity := toWorkoutUserDBModel(workoutUser)
+	query := s.workoutUserDb.Delete(entity)
+
+	if err := query.Error; err != nil {
+		appErr := domainErrors.NewAppError(errors.Wrap(err, readError), domainErrors.RepositoryError)
+		return false, appErr
+	}
+
+	return true, nil
 }

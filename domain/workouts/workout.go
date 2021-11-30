@@ -1,6 +1,7 @@
 package workouts
 
 import (
+	"telegramStravaBot/domain/users"
 	"time"
 )
 
@@ -8,6 +9,7 @@ type Workout struct {
 	Id           int
 	Title        string
 	Description  string
+	Status       int
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	WorkoutUsers []WorkoutUser
@@ -15,8 +17,9 @@ type Workout struct {
 
 type WorkoutUser struct {
 	Id        int
-	UserID    uint
+	UserID    int
 	WorkoutId uint
+	User      users.User
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt time.Time
@@ -24,10 +27,11 @@ type WorkoutUser struct {
 
 type WorkoutUserResponse struct {
 	Id        int       `json:"id"`
-	UserID    uint      `json:"user_id"`
+	UserID    int       `json:"user_id"`
 	WorkoutId uint      `json:"workout_id"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+	DeletedAt time.Time `json:"deleted_at"`
 }
 
 type WorkoutResponse struct {
@@ -53,6 +57,7 @@ func ToResponseWorkoutUsersModel(entity *WorkoutUser) *WorkoutUserResponse {
 		WorkoutId: entity.WorkoutId,
 		CreatedAt: entity.CreatedAt,
 		UpdatedAt: entity.UpdatedAt,
+		DeletedAt: entity.DeletedAt,
 	}
 }
 
