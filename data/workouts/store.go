@@ -76,7 +76,7 @@ func (s *Store) ListWorkouts() ([]domain.Workout, error) {
 	var results []Workout
 	var currentTime = time.Now()
 
-	if err := s.db.Where("created_at >=", currentTime).Find(&results).Error; err != nil {
+	if err := s.db.Where("created_at >= ?", currentTime).Find(&results).Error; err != nil {
 		appErr := domainErrors.NewAppError(errors.Wrap(err, listError), domainErrors.RepositoryError)
 		return nil, appErr
 	}
