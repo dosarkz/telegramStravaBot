@@ -1,11 +1,11 @@
 package workouts
 
 import (
-	"fmt"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	domainErrors "telegramStravaBot/domain/errors"
 	domain "telegramStravaBot/domain/workouts"
+	"time"
 )
 
 const (
@@ -74,8 +74,9 @@ func (s *Store) ReadWorkout(id int) (*domain.Workout, error) {
 
 func (s *Store) ListWorkouts() ([]domain.Workout, error) {
 	var results []Workout
+	var currentTime = time.Now()
 
-	if err := s.db.Find(&results).Error; err != nil {
+	if err := s.db.Where("created_at >=", currentTime).Find(&results).Error; err != nil {
 		appErr := domainErrors.NewAppError(errors.Wrap(err, listError), domainErrors.RepositoryError)
 		return nil, appErr
 	}
@@ -108,7 +109,6 @@ func (s *Store) ListWorkoutMembers(workoutId int) ([]domain.WorkoutUser, error) 
 
 func (s *Store) FindBy(userId int, workoutId int) (*domain.WorkoutUser, error) {
 	result := &WorkoutUser{}
-	fmt.Println("test:  ", userId, workoutId)
 	query := s.workoutUserDb.Where("user_id = ? and workout_id = ?", userId, workoutId).First(result)
 
 	if query.RecordNotFound() {
