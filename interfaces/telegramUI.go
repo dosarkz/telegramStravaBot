@@ -167,14 +167,20 @@ func (r TelegramUIRepository) Init() {
 					update.CallbackQuery.Message.MessageID,
 					msgText, r.UI.AppointmentDoneKeyboardMarkup(workoutId))
 				answer.ParseMode = "markdown"
-				r.Bot.Send(answer)
+				_, err := r.Bot.Send(answer)
+				if err != nil {
+					return
+				}
 				break
 			case "leave":
 				msgText := getAppointmentText(update, 0, r, workoutId)
 				answer := tgbotapi.NewEditMessageTextAndMarkup(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID,
 					msgText, r.UI.AppointmentKeyboardMarkup(workoutId))
 				answer.ParseMode = "markdown"
-				r.Bot.Send(answer)
+				_, err := r.Bot.Send(answer)
+				if err != nil {
+					return
+				}
 				break
 			}
 		}
@@ -200,7 +206,7 @@ func (r TelegramUIRepository) Init() {
 		case "/rating", "Рейтинг Метронома":
 			msg.Text = getRatingClub()
 			break
-		case "Запись на тренировку":
+		case "/run", "Запись на тренировку":
 			appointmentToRunning(r, update)
 			break
 		case "Клуб Любителей Бега MaratHON":
@@ -347,8 +353,11 @@ func appointmentToRunning(r TelegramUIRepository, update tgbotapi.Update) {
 	}
 
 	if len(responseItems) == 0 {
-		r.Bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "🎽Ближайших тренировок не наблюдается, "+
+		_, err := r.Bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "🎽Ближайших тренировок не наблюдается, "+
 			"отдыхай и восстанавливайся😴."))
+		if err != nil {
+			return
+		}
 	}
 
 	for i := 0; i < len(responseItems); i++ {
@@ -359,7 +368,10 @@ func appointmentToRunning(r TelegramUIRepository, update tgbotapi.Update) {
 		newMessage := tgbotapi.NewMessage(update.Message.Chat.ID, msg)
 		newMessage.ReplyMarkup = r.UI.AppointmentKeyboardMarkup(responseItems[i].Id)
 		newMessage.ParseMode = "markdown"
-		r.Bot.Send(newMessage)
+		_, err := r.Bot.Send(newMessage)
+		if err != nil {
+			return
+		}
 	}
 }
 
