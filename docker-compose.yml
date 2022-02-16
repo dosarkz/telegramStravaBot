@@ -29,7 +29,7 @@ services:
       - .:/go/src/telegramStravaBot
     depends_on:
       - postgres
-    command: ["./wait-for-postgres.sh"]
+    command: ["./wait-for-postgres.sh", "database:5432"]
     networks:
       - running
     ports:
