@@ -10,6 +10,7 @@ type Config struct {
 	Port        string
 	Database    *Database
 	BasePath    string
+	BotName     string
 }
 
 // Database is a struct that contains DB's configuration variables
@@ -33,6 +34,7 @@ func NewConfig() (*Config, error) {
 		Environment: os.Getenv("ENV"),
 		Port:        port,
 		BasePath:    os.Getenv("BASE_PATH"),
+		BotName:     os.Getenv("BOT_NAME"),
 		Database: &Database{
 			Host:     os.Getenv("DATABASE_HOST"),
 			Port:     os.Getenv("DATABASE_PORT"),

@@ -47,8 +47,14 @@ func main() {
 	ya.Init()
 
 	ui := interfaces.NewTelegramUI()
-	telegramRepo := interfaces.TelegramUIRepository{UI: ui, YA: ya, User: userService, Workout: workoutService,
-		Bot: bot}
+	telegramRepo := interfaces.TelegramUIRepository{
+		UI:      ui,
+		YA:      ya,
+		User:    userService,
+		Workout: workoutService,
+		Bot:     bot,
+		Config:  configuration,
+	}
 	telegramRepo.Init()
 
 	//httpRouter := router.NewHTTPHandler(workoutService)

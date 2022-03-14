@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/robfig/cron"
+	"github.com/robfig/cron/v3"
 	"io"
 	"io/ioutil"
 	"log"
@@ -29,26 +29,21 @@ func NewYandexWeather(bot *tgbotapi.BotAPI) YandexWeather {
 }
 
 func (y *yandexWeather) Init() {
+	//fmt.Println("test start crontab")
 	c := cron.New()
-	c.AddFunc("30 5 * * 2,4,6", func() {
-		config := tgbotapi.ChatInfoConfig{ChatConfig: tgbotapi.ChatConfig{ChatID: -1001451720943}}
+	c.AddFunc("30 5 * * 1,2,4,6", func() {
+		fmt.Println("test crontab")
+		config := tgbotapi.ChatInfoConfig{ChatConfig: tgbotapi.ChatConfig{ChatID: 0}}
 		chat, err := y.bot.GetChat(config)
 		if err != nil {
-			log.Panic(err)
+			return
 		}
 
-		newMessage := tgbotapi.NewMessage(chat.ID, " С добрым утречком тебя,\n"+
-			"Улыбнись скорее,\n"+
-			"Легкого желаю дня☀,\n"+
-			"Быть тебе бодрее!\n"+
-			"\n"+
-			"Всюду и везде успеть,\n"+
-			"Чаще улыбаться,\n"+
-			"А еще не уставать,\n"+
-			"Жизнью наслаждаться🤗!\n\n"+y.GetForecastText())
+		newMessage := tgbotapi.NewMessage(chat.ID, " С добрым утром!\n"+y.GetForecastText())
 		y.bot.Send(newMessage)
 	})
 	c.Start()
+
 }
 
 func (y *yandexWeather) GetForecastRequest() *domain.Weather {

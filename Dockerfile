@@ -30,7 +30,6 @@ WORKDIR /
 
 COPY --from=build /build /build
 COPY --from=build  /app/.env /.env
-COPY --from=build  /app/wait-for-postgres.sh /wait-for-postgres.sh
 COPY ./data/database/migrations/ /data/database/migrations/
 
 EXPOSE 8000

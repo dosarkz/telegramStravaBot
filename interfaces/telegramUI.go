@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"telegramStravaBot/config"
 	"telegramStravaBot/domain"
 	user "telegramStravaBot/domain/users"
 	"telegramStravaBot/domain/workouts"
@@ -137,6 +138,7 @@ type TelegramUIRepository struct {
 	User    user.UserService
 	Workout workouts.WorkoutService
 	Bot     *tgbotapi.BotAPI
+	Config  *config.Config
 }
 
 func NewTelegramUI() TelegramUI {
@@ -206,10 +208,13 @@ func (r TelegramUIRepository) Init() {
 		case "/rating", "Рейтинг Метронома":
 			msg.Text = getRatingClub()
 			break
+		case "/workout":
+			msg.Text = getWorkoutNewMessage()
+			break
 		case "/run", "Запись на тренировку":
 			appointmentToRunning(r, update)
 			break
-		case "Клуб Любителей Бега MaratHON":
+		case "Клуб Любителей Бега MaratHON", "/club":
 			msg.Text = r.UI.MarathonText()
 			msg.ReplyMarkup = r.UI.MarathonInlineKeyboardMarkup()
 			break
@@ -220,7 +225,7 @@ func (r TelegramUIRepository) Init() {
 		case "Погода", "/weather":
 			msg.Text = r.YA.GetForecastText()
 			break
-		case "Разминка Амосова":
+		case "Разминка Амосова", "/amosov":
 			msg.Text = "Уникальная программа разминки Амосова от Марата Толегеновича, делайте ее ежедневно и будете здоровы!\n" +
 				"* Каждое упражнение выполняется по 100 раз!* \n" +
 				"- Руки на пояс и движение корпусом влево и вправо \n" +
@@ -423,6 +428,13 @@ func getRatingClub() string {
 	message += "**Хотите участвовать в рейтинге ‍🚀?** \n Подписывайтесь на страницу в [STRAVA](https://www.strava.com/clubs/540448) и вы автоматически будете в нашем списке 😀👍"
 
 	return message
+}
+
+func getWorkoutNewMessage() string {
+	return "Для того, чтобы создать тренировку, введите текст в следующем виде:\n\n" +
+		"`Тренировка в ТП\n" +
+		"Легкий бег - 120 ударов 1 час \n" +
+		"14.03.2022 06:00```"
 }
 
 func secondsToMinutes(inSeconds int) float64 {

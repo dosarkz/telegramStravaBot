@@ -1,20 +1,33 @@
-version: "3.7"
+version: "3.9"
 
 services:
   postgres:
     container_name: runbot_db
-    image: postgres:14
+    image: postgres:14-alpine3.14
     restart: always
     env_file:
       - .env
     ports:
       - ${DOCKER_POSTGRES_PORT}
     volumes:
-      - postgres:/data/postgres
+      - postgres:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=$DATABASE_DB
       - POSTGRES_USER=$DATABASE_USER
       - POSTGRES_PASSWORD=$DATABASE_PASSWORD
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $DATABASE_USER -d $DATABASE_DB" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - running
+      - default
+
+  redis:
+    container_name: runbot_redis
+    image: redis:6-alpine3.14
+    restart: unless-stopped
     networks:
       - running
 
@@ -29,7 +42,6 @@ services:
       - .:/go/src/telegramStravaBot
     depends_on:
       - postgres
-    command: ["./wait-for-postgres.sh"]
     networks:
       - running
     ports:
@@ -47,4 +59,3 @@ networks:
     driver: "bridge"
 volumes:
   postgres:
-  pgadmin:
