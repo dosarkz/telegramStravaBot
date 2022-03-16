@@ -146,6 +146,7 @@ func NewTelegramUI() TelegramUI {
 }
 
 func (r TelegramUIRepository) Init() {
+	isCreateWorkout := 0
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 	updates := r.Bot.GetUpdatesChan(u)
@@ -193,6 +194,25 @@ func (r TelegramUIRepository) Init() {
 
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
 
+		if isCreateWorkout != 0 {
+			fmt.Printf("creation a workout\n")
+			newText := strings.Split(update.Message.Text, "\n")
+			if len(newText) < 2 {
+				msg.Text = "Шаблон тренировки введен некорректно. Пожалуйста попробуйте изменить текст и выполнить команду занова."
+				replyMessage(msg, update, r.Bot)
+				continue
+			}
+
+			date, err := time.Parse("2.1.2006 15:04", newText[2])
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			fmt.Printf("date %s\n", date)
+			wk := &workouts.Workout{Title: newText[0], Description: newText[1], CreatedAt: date}
+			fmt.Println(wk)
+		}
+
 		switch update.Message.Text {
 		case "/start":
 			msg = getStartMessage(update)
@@ -209,7 +229,12 @@ func (r TelegramUIRepository) Init() {
 			msg.Text = getRatingClub()
 			break
 		case "/workout":
+			if update.Message.Chat.Type == "group" {
+				msg.Text = "Добавлять тренировки можно только персональном чате с ботом!"
+				break
+			}
 			msg.Text = getWorkoutNewMessage()
+			isCreateWorkout = 1
 			break
 		case "/run", "Запись на тренировку":
 			appointmentToRunning(r, update)
@@ -246,7 +271,7 @@ func (r TelegramUIRepository) Init() {
 		}
 
 		if msg.Text != update.Message.Text {
-			fmt.Printf(msg.Text)
+			//fmt.Printf(msg.Text)
 			replyMessage(msg, update, r.Bot)
 		}
 	}
@@ -431,7 +456,7 @@ func getRatingClub() string {
 }
 
 func getWorkoutNewMessage() string {
-	return "Для того, чтобы создать тренировку, введите текст в следующем виде:\n\n" +
+	return "Для того, чтобы создать тренировку, введите текст одним сообщением в следующем виде:\n\n" +
 		"`Тренировка в ТП\n" +
 		"Легкий бег - 120 ударов 1 час \n" +
 		"14.03.2022 06:00```"
