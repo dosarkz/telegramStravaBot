@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"telegramStravaBot/config"
@@ -10,12 +11,14 @@ import (
 	workoutStore "telegramStravaBot/data/workouts"
 	"telegramStravaBot/domain/users"
 	"telegramStravaBot/domain/workouts"
-	"telegramStravaBot/infrastructure"
 	"telegramStravaBot/interfaces"
 )
 
 func main() {
-	infrastructure.LoadEnv()
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_API_KEY"))
 	if err != nil {
@@ -29,6 +32,15 @@ func main() {
 
 	// establish DB connection
 	database, err := db.Connect(configuration)
+	if err != nil {
+		panic(err)
+	}
+
+	// establish Redis connection
+	_, err = db.ConnectToRedis(configuration.Redis)
+	if err != nil {
+		log.Fatalf("Failed to connect to redis: %s", err.Error())
+	}
 	if err != nil {
 		panic(err)
 	}

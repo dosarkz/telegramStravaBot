@@ -28,8 +28,11 @@ services:
     container_name: runbot_redis
     image: redis:6-alpine3.14
     restart: unless-stopped
+    ports:
+      - ${DOCKER_REDIS_PORT:-6379}:6379
     networks:
       - running
+      - default
 
   server:
     container_name: runbot_app
@@ -42,7 +45,6 @@ services:
       - .:/go/src/telegramStravaBot
     depends_on:
       - postgres
-    command: ["./wait-for-postgres.sh"]
     networks:
       - running
     ports:

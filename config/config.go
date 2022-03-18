@@ -11,6 +11,7 @@ type Config struct {
 	Database    *Database
 	BasePath    string
 	BotName     string
+	Redis       *Redis
 }
 
 // Database is a struct that contains DB's configuration variables
@@ -21,6 +22,13 @@ type Database struct {
 	DB       string
 	Password string
 	Timezone string
+}
+
+type Redis struct {
+	Host      string
+	Port      string
+	Password  string
+	CacheTime string
 }
 
 // NewConfig creates a new Config struct
@@ -42,6 +50,12 @@ func NewConfig() (*Config, error) {
 			DB:       os.Getenv("DATABASE_DB"),
 			Password: os.Getenv("DATABASE_PASSWORD"),
 			Timezone: os.Getenv("DATABASE_TIMEZONE"),
+		},
+		Redis: &Redis{
+			Host:      os.Getenv("REDIS_HOST"),
+			Port:      os.Getenv("REDIS_PORT"),
+			Password:  os.Getenv("REDIS_PASSWORD"),
+			CacheTime: os.Getenv("CACHE_TIME"),
 		},
 	}, nil
 }

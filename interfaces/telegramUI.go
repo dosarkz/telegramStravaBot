@@ -214,21 +214,21 @@ func (r TelegramUIRepository) Init() {
 		}
 
 		switch update.Message.Text {
-		case "/start":
+		case "/start", "/start@" + r.Config.BotName:
 			msg = getStartMessage(update)
 			break
-		case "/open", "menu":
+		case "/open", "/open@" + r.Config.BotName:
 			msg.ReplyMarkup = r.UI.MainMenu()
 			msg.Text = "Открыто меню"
 			break
-		case "/close", "Закрыть меню":
+		case "/close", "/close@" + r.Config.BotName, "Закрыть меню":
 			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 			msg.Text = "Закрыто"
 			break
-		case "/rating", "Рейтинг Метронома":
+		case "/rating", "/rating@" + r.Config.BotName, "Рейтинг Метронома":
 			msg.Text = getRatingClub()
 			break
-		case "/workout":
+		case "/workout/add":
 			if update.Message.Chat.Type == "group" {
 				msg.Text = "Добавлять тренировки можно только персональном чате с ботом!"
 				break
@@ -236,10 +236,13 @@ func (r TelegramUIRepository) Init() {
 			msg.Text = getWorkoutNewMessage()
 			isCreateWorkout = 1
 			break
-		case "/run", "Запись на тренировку":
+		case "/workout/stop":
+			isCreateWorkout = 0
+			break
+		case "/run", "/run@" + r.Config.BotName, "Запись на тренировку":
 			appointmentToRunning(r, update)
 			break
-		case "Клуб Любителей Бега MaratHON", "/club":
+		case "Клуб Любителей Бега MaratHON", "/club@" + r.Config.BotName, "/club":
 			msg.Text = r.UI.MarathonText()
 			msg.ReplyMarkup = r.UI.MarathonInlineKeyboardMarkup()
 			break
@@ -247,10 +250,10 @@ func (r TelegramUIRepository) Init() {
 			msg.Text = "ok"
 			msg.ReplyMarkup = r.UI.HideMenu()
 			break
-		case "Погода", "/weather":
+		case "Погода", "/weather", "/weather@" + r.Config.BotName:
 			msg.Text = r.YA.GetForecastText()
 			break
-		case "Разминка Амосова", "/amosov":
+		case "Разминка Амосова", "/amosov", "/amosov@" + r.Config.BotName:
 			msg.Text = "Уникальная программа разминки Амосова от Марата Толегеновича, делайте ее ежедневно и будете здоровы!\n" +
 				"* Каждое упражнение выполняется по 100 раз!* \n" +
 				"- Руки на пояс и движение корпусом влево и вправо \n" +
