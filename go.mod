@@ -6,7 +6,6 @@ require (
 	github.com/eldimious/golang-api-showcase v0.0.0-20190204125457-c95ab0d21a4d
 	github.com/gin-contrib/cors v0.0.0-20190101123304-5e7acb10687f
 	github.com/gin-gonic/gin v1.7.7
-	github.com/go-redis/redis v6.15.9+incompatible // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.4.0-beta.0
 	github.com/golang-migrate/migrate/v4 v4.15.1
