@@ -43,11 +43,11 @@ type WorkoutResponse struct {
 }
 
 type ListWorkoutResponse struct {
-	Data []WorkoutResponse `json:"data"`
+	Data []WorkoutResponse `json:"repositories"`
 }
 
 type ListWorkoutUsersResponse struct {
-	Data []WorkoutUserResponse `json:"data"`
+	Data []WorkoutUserResponse `json:"repositories"`
 }
 
 func ToResponseWorkoutUsersModel(entity *WorkoutUser) *WorkoutUserResponse {
