@@ -1,8 +1,13 @@
 package bot
 
 import (
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"strconv"
+	"strings"
 	"telegramStravaBot/domain"
+	"telegramStravaBot/domain/workouts"
+	"time"
 )
 
 type UIService struct {
@@ -23,6 +28,7 @@ func (s UIService) Run() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 	updates := s.Action.Bot.GetUpdatesChan(u)
+	var newWorkout = 0
 
 	for update := range updates {
 		s.Action.callbackQuery(update)
@@ -33,6 +39,32 @@ func (s UIService) Run() {
 		//	log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+
+		if newWorkout != 0 {
+			fmt.Printf("creation a workout\n")
+			newText := strings.Split(update.Message.Text, "\n")
+			if len(newText) < 2 {
+				msg.Text = "Шаблон тренировки введен некорректно. Пожалуйста попробуйте изменить текст и выполнить команду занова."
+				replyMessage(msg, update, s.Action.Bot)
+				continue
+			}
+
+			date, err := time.Parse("2006.01.02 22:11", newText[2])
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			fmt.Printf("date %s\n", date)
+			wk := &workouts.Workout{Title: newText[0], Description: newText[1], CreatedAt: date, Status: 1}
+			w, err := s.Repos.WorkoutRepository.CreateWorkout(wk)
+			if err != nil {
+				fmt.Println(err)
+			}
+			msg.Text = "Успешно. Тренировка сохранена под №" + strconv.Itoa(w.Id)
+			newWorkout = 0
+			replyMessage(msg, update, s.Action.Bot)
+			continue
+		}
 
 		switch update.Message.Text {
 		case "Рейтинг Метронома":
@@ -71,6 +103,7 @@ func (s UIService) Run() {
 				break
 			}
 			msg.Text = getWorkoutNewMessage()
+			newWorkout = 1
 			break
 		case "run":
 			appointmentToRunning(&s, update)
@@ -89,25 +122,6 @@ func (s UIService) Run() {
 			msg.Text = "Главное меню"
 			break
 		}
-
-		//if isCreateWorkout != 0 {
-		//	fmt.Printf("creation a workout\n")
-		//	newText := strings.Split(update.Message.Text, "\n")
-		//	if len(newText) < 2 {
-		//		msg.Text = "Шаблон тренировки введен некорректно. Пожалуйста попробуйте изменить текст и выполнить команду занова."
-		//		replyMessage(msg, update, r.Bot)
-		//		continue
-		//	}
-		//
-		//	date, err := time.Parse("2.1.2006 15:04", newText[2])
-		//	if err != nil {
-		//		fmt.Println(err)
-		//	}
-		//
-		//	fmt.Printf("date %s\n", date)
-		//	wk := &workouts.Workout{Title: newText[0], Description: newText[1], CreatedAt: date}
-		//	fmt.Println(wk)
-		//}
 
 		if msg.Text != update.Message.Text {
 			replyMessage(msg, update, s.Action.Bot)
