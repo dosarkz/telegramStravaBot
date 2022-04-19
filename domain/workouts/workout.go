@@ -15,6 +15,13 @@ type Workout struct {
 	WorkoutUsers []WorkoutUser
 }
 
+type WorkoutStatus struct {
+	WorkoutId    int
+	UserId       int64
+	DeleteStatus int
+	CreateStatus int
+}
+
 type WorkoutUser struct {
 	Id        int
 	UserID    int
@@ -22,7 +29,7 @@ type WorkoutUser struct {
 	User      users.User
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	DeletedAt time.Time
+	DeletedAt *time.Time
 }
 
 type WorkoutUserResponse struct {
@@ -43,22 +50,11 @@ type WorkoutResponse struct {
 }
 
 type ListWorkoutResponse struct {
-	Data []WorkoutResponse `json:"data"`
+	Data []WorkoutResponse `json:"repositories"`
 }
 
 type ListWorkoutUsersResponse struct {
-	Data []WorkoutUserResponse `json:"data"`
-}
-
-func ToResponseWorkoutUsersModel(entity *WorkoutUser) *WorkoutUserResponse {
-	return &WorkoutUserResponse{
-		Id:        entity.Id,
-		UserID:    entity.UserID,
-		WorkoutId: entity.WorkoutId,
-		CreatedAt: entity.CreatedAt,
-		UpdatedAt: entity.UpdatedAt,
-		DeletedAt: entity.DeletedAt,
-	}
+	Data []WorkoutUserResponse `json:"repositories"`
 }
 
 func ToResponseModel(entity *Workout) *WorkoutResponse {

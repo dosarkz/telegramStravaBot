@@ -30,7 +30,7 @@ WORKDIR /
 
 COPY --from=build /build /build
 COPY --from=build  /app/.env /.env
-COPY ./data/database/migrations/ /data/database/migrations/
+COPY database/migrations/ /data/database/migrations/
 
 EXPOSE 8000
 

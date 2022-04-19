@@ -10,7 +10,7 @@ services:
     ports:
       - ${DOCKER_POSTGRES_PORT}
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - postgres:/var/lib/postgresql/repositories
     environment:
       - POSTGRES_DB=$DATABASE_DB
       - POSTGRES_USER=$DATABASE_USER
