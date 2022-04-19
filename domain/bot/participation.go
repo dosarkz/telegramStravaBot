@@ -71,7 +71,7 @@ func getAppointmentText(update tgbotapi.Update, typeId int, r *domain.Repositori
 		log.Panic(err)
 	}
 
-	text := fmt.Sprintf("🔥Тренировка № %d\n 🏃‍♀ 🏃 %s\n %s\n %s\n %s", workoutId, workout.CreatedAt.Format(time.RFC822), workout.Title, workout.Description,
+	text := fmt.Sprintf("🎽Тренировка № %d\n 🏃‍♀ 🏃 %s\n %s\n %s\n %s", workoutId, workout.CreatedAt.Format(time.RFC822), workout.Title, workout.Description,
 		getWorkoutUserList(workoutId, r))
 	return text
 }

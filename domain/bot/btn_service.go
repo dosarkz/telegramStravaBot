@@ -25,6 +25,11 @@ func (t *UIButtonService) AlmatyInlineButton() tgbotapi.InlineKeyboardButton {
 	return tgbotapi.InlineKeyboardButton{Text: "Алматинское сообщество бега", URL: &almatyButtonData}
 }
 
+func (t *UIButtonService) CompleteWorkoutButton() tgbotapi.InlineKeyboardButton {
+	str := "workout_complete"
+	return tgbotapi.InlineKeyboardButton{Text: "❌ Завершить", CallbackData: &str}
+}
+
 func (t *UIButtonService) InstaInlineButton() tgbotapi.InlineKeyboardButton {
 	instagramButtonData := os.Getenv("METRONOME_INSTA_URL")
 	return tgbotapi.InlineKeyboardButton{Text: "Подписаться в Instagram", URL: &instagramButtonData}

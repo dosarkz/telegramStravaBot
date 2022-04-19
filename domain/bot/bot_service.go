@@ -63,6 +63,7 @@ func (s UIService) Run() {
 				continue
 			}
 			msg = newTraining(msg, update, s.Redis)
+			msg.ReplyMarkup = s.Menu.CreateWorkoutKeyboard()
 			break
 		}
 
@@ -84,6 +85,7 @@ func (s UIService) Run() {
 				continue
 			}
 			msg = newTraining(msg, update, s.Redis)
+			msg.ReplyMarkup = s.Menu.CreateWorkoutKeyboard()
 			break
 		case "skipNewWorkout":
 			if isGroup {

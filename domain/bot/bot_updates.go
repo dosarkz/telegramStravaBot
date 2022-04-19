@@ -14,8 +14,15 @@ func (a UIActionService) callbackQuery(update tgbotapi.Update, s *UIService) {
 	if _, err := a.Bot.Request(callback); err != nil {
 		panic(err)
 	}
+
+	if update.CallbackQuery.Data == "workout_complete" {
+		errs := s.Redis.Set("makeWorkout", 0, 0).Err()
+		if errs != nil {
+			panic(errs)
+		}
+		return
+	}
 	callbackData := strings.Split(update.CallbackQuery.Data, "_")
-	//fmt.Println(callbackData[0])
 	workoutId, _ := strconv.Atoi(callbackData[1])
 
 	switch callbackData[0] {

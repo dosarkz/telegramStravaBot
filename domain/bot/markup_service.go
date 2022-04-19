@@ -56,6 +56,12 @@ func (m *UIMenuService) MarathonInlineKeyboardMarkup() tgbotapi.InlineKeyboardMa
 	)
 }
 
+func (m *UIMenuService) CreateWorkoutKeyboard() tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		[]tgbotapi.InlineKeyboardButton{m.Button.CompleteWorkoutButton()},
+	)
+}
+
 func (m *UIMenuService) AppointmentKeyboardMarkup(workoutId int) tgbotapi.InlineKeyboardMarkup {
 	callbackData := "appointment_" + strconv.Itoa(workoutId)
 	return tgbotapi.NewInlineKeyboardMarkup(
