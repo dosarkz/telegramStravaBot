@@ -1,9 +1,14 @@
 package workouts
 
 import (
+	"fmt"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+	"strconv"
+	"strings"
 	domainErrors "telegramStravaBot/app/handlers"
+	"telegramStravaBot/domain/users"
 	"time"
 )
 
@@ -141,4 +146,84 @@ func (s *WorkoutRepository) Delete(workoutUser *WorkoutUser) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (s *WorkoutRepository) DeleteWorkout(workout *Workout) (bool, error) {
+	entity := toDBModel(workout)
+	query := s.db.Delete(entity)
+
+	if err := query.Error; err != nil {
+		appErr := domainErrors.NewAppError(errors.Wrap(err, readError), domainErrors.RepositoryError)
+		return false, appErr
+	}
+
+	return true, nil
+}
+
+func (s WorkoutRepository) CallbackNewWorkout(update tgbotapi.Update) (bool, *Workout) {
+
+	newText := strings.Split(update.Message.Text, "\n")
+	if len(newText) < 2 {
+		return true, nil
+	}
+	date, DateErr := time.Parse("2006-01-02 15:04", newText[2])
+	if DateErr != nil {
+		return true, nil
+	}
+
+	wk := &Workout{Title: newText[0], Description: newText[1], CreatedAt: date, Status: 1}
+	w, err := s.CreateWorkout(wk)
+	if err != nil {
+		return true, nil
+	}
+	return false, w
+}
+
+func (s WorkoutRepository) CallbackDeleteWorkout(update tgbotapi.Update) bool {
+	id, err := strconv.Atoi(update.Message.Text)
+	if err != nil {
+		return false
+	}
+
+	workout, err := s.ReadWorkout(id)
+	if err != nil {
+		return false
+	}
+
+	_, err = s.DeleteWorkout(workout)
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
+func (s WorkoutRepository) RegisterUserWorkout(user *users.User, workoutId int) *WorkoutUser {
+	getWorkoutUser, err := s.FindBy(user.Id, workoutId)
+
+	if err != nil {
+		newWorkoutUser := WorkoutUser{
+			UserID:    user.Id,
+			WorkoutId: uint(workoutId),
+		}
+		getWorkoutUser, err = s.CreateWorkoutUser(&newWorkoutUser)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return getWorkoutUser
+}
+
+func (s WorkoutRepository) LeaveUserWorkout(user *users.User, workoutId int) {
+	getWorkoutUser, err := s.FindBy(user.Id, workoutId)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	_, err = s.Delete(getWorkoutUser)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 }

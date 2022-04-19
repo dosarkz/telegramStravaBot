@@ -21,15 +21,18 @@ type UIMenuService struct {
 func (m *UIMenuService) MainMenu() tgbotapi.ReplyKeyboardMarkup {
 	keyboard := tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("Клуб Любителей Бега MaratHON"),
+			tgbotapi.NewKeyboardButton("🏃 Клуб Любителей Бега MaratHON"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("Рейтинг Метронома"),
-			tgbotapi.NewKeyboardButton("Запись на тренировку"),
+			tgbotapi.NewKeyboardButton("⚡ Рейтинг Метронома"),
+			tgbotapi.NewKeyboardButton("✅ Запись на тренировку"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("Разминка Амосова"),
-			tgbotapi.NewKeyboardButton("Погода"),
+			tgbotapi.NewKeyboardButton("😊 Разминка Амосова"),
+			tgbotapi.NewKeyboardButton("☂ Погода"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("➕Добавить тренировку"),
 		),
 	)
 	return keyboard

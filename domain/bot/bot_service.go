@@ -1,26 +1,27 @@
 package bot
 
 import (
-	"fmt"
+	"encoding/json"
+	"github.com/go-redis/redis"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"strconv"
-	"strings"
 	"telegramStravaBot/domain"
 	"telegramStravaBot/domain/workouts"
-	"time"
 )
 
 type UIService struct {
 	Menu   *UIMenuService
 	Action *UIActionService
 	Repos  *domain.Repositories
+	Redis  *redis.Client
 }
 
-func NewUIService(service UIActionService, repos *domain.Repositories) *UIService {
+func NewUIService(service UIActionService, repos *domain.Repositories, redis *redis.Client) *UIService {
 	return &UIService{
 		Action: &service,
 		Menu:   &UIMenuService{Button: &UIButtonService{}},
 		Repos:  repos,
+		Redis:  redis,
 	}
 }
 
@@ -28,10 +29,10 @@ func (s UIService) Run() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 	updates := s.Action.Bot.GetUpdatesChan(u)
-	var newWorkout = 0
 
 	for update := range updates {
-		s.Action.callbackQuery(update)
+		s.Action.callbackQuery(update, &s)
+		mwk := []byte(s.Redis.Get("makeWorkout").Val())
 
 		if update.Message == nil { // ignore any non-Message Updates
 			continue
@@ -39,48 +40,29 @@ func (s UIService) Run() {
 		//	log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-
-		if newWorkout != 0 {
-			fmt.Printf("creation a workout\n")
-			newText := strings.Split(update.Message.Text, "\n")
-			if len(newText) < 2 {
-				msg.Text = "Шаблон тренировки введен некорректно. Пожалуйста попробуйте изменить текст и выполнить команду занова."
-				replyMessage(msg, update, s.Action.Bot)
-				continue
-			}
-
-			date, err := time.Parse("2006.01.02 22:11", newText[2])
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			fmt.Printf("date %s\n", date)
-			wk := &workouts.Workout{Title: newText[0], Description: newText[1], CreatedAt: date, Status: 1}
-			w, err := s.Repos.WorkoutRepository.CreateWorkout(wk)
-			if err != nil {
-				fmt.Println(err)
-			}
-			msg.Text = "Успешно. Тренировка сохранена под №" + strconv.Itoa(w.Id)
-			newWorkout = 0
-			replyMessage(msg, update, s.Action.Bot)
-			continue
-		}
+		isGroup := checkIsGroup(update, msg, s.Action.Bot)
 
 		switch update.Message.Text {
-		case "Рейтинг Метронома":
+		case "⚡ Рейтинг Метронома":
 			msg = getRatingMessage(msg)
 			break
-		case "Запись на тренировку":
+		case "✅ Запись на тренировку":
 			appointmentToRunning(&s, update)
 			break
-		case "Клуб Любителей Бега MaratHON":
+		case "🏃 Клуб Любителей Бега MaratHON":
 			msg = getClubMessage(msg, s.Menu)
 			break
-		case "Разминка Амосова":
+		case "😊 Разминка Амосова":
 			msg.Text = amosovMessageText()
 			break
-		case "Погода":
+		case "☂ Погода":
 			msg.Text = s.Action.YA.GetForecastText()
+			break
+		case "➕Добавить тренировку":
+			if isGroup {
+				continue
+			}
+			msg = newTraining(msg, update, s.Redis)
 			break
 		}
 
@@ -97,13 +79,36 @@ func (s UIService) Run() {
 		case "rating":
 			msg = getRatingMessage(msg)
 			break
-		case "new_workout":
-			if update.Message.Chat.Type == "group" {
-				msg.Text = "Добавлять тренировки можно только персональном чате с ботом!"
-				break
+		case "newWorkout":
+			if isGroup {
+				continue
 			}
-			msg.Text = getWorkoutNewMessage()
-			newWorkout = 1
+			msg = newTraining(msg, update, s.Redis)
+			break
+		case "skipNewWorkout":
+			if isGroup {
+				continue
+			}
+			msg.Text = "Создание новой тренировки прервано успешно."
+			err := s.Redis.Set("makeWorkout", 0, 0).Err()
+			if err != nil {
+				panic(err)
+			}
+			break
+		case "deleteNewWorkout":
+			if isGroup {
+				continue
+			}
+			msg.Text = "Отправьте id тренировки следующим сообщением для удаления записи."
+			bJson, err := json.Marshal(&workouts.WorkoutStatus{UserId: update.Message.From.ID,
+				DeleteStatus: 1})
+			if err != nil {
+				panic(err)
+			}
+			err = s.Redis.Set("makeWorkout", bJson, 0).Err()
+			if err != nil {
+				panic(err)
+			}
 			break
 		case "run":
 			appointmentToRunning(&s, update)
@@ -123,8 +128,57 @@ func (s UIService) Run() {
 			break
 		}
 
+		data := workouts.WorkoutStatus{}
+		json.Unmarshal(mwk, &data)
+
+		if !isGroup && data.UserId == update.Message.From.ID {
+			if data.CreateStatus != 0 {
+				wErr, workout := s.Repos.WorkoutRepository.CallbackNewWorkout(update)
+
+				if wErr {
+					msg.Text = "Шаблон тренировки введен некорректно. Пожалуйста попробуйте изменить текст и выполнить команду занова."
+				} else {
+					msg.Text = "Успешно. Тренировка сохранена под №" + strconv.Itoa(workout.Id)
+					err := s.Redis.Set("makeWorkout", 0, 0).Err()
+					if err != nil {
+						panic(err)
+					}
+				}
+			}
+
+			if data.DeleteStatus != 0 {
+				wErr := s.Repos.WorkoutRepository.CallbackDeleteWorkout(update)
+				if wErr {
+					s.Redis.Set("makeWorkout", 0, 0)
+					msg.Text = "Тренировка удалена"
+				}
+			}
+		}
+
 		if msg.Text != update.Message.Text {
 			replyMessage(msg, update, s.Action.Bot)
 		}
 	}
+}
+
+func newTraining(msg tgbotapi.MessageConfig, update tgbotapi.Update, redis *redis.Client) tgbotapi.MessageConfig {
+	msg.Text = getWorkoutNewMessage()
+	bJson, err := json.Marshal(&workouts.WorkoutStatus{UserId: update.Message.From.ID,
+		CreateStatus: 1})
+
+	err = redis.Set("makeWorkout", bJson, 0).Err()
+	if err != nil {
+		panic(err)
+	}
+
+	return msg
+}
+
+func checkIsGroup(update tgbotapi.Update, msg tgbotapi.MessageConfig, Bot *tgbotapi.BotAPI) bool {
+	if update.Message.Chat.Type == "group" {
+		msg.Text = "Данная функция доступна только в персональном чате с ботом!"
+		replyMessage(msg, update, Bot)
+		return true
+	}
+	return false
 }

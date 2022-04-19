@@ -5,6 +5,7 @@ func toDBModel(entity *Workout) *Workout {
 		Id:          entity.Id,
 		Title:       entity.Title,
 		Description: entity.Description,
+		CreatedAt:   entity.CreatedAt,
 	}
 }
 
