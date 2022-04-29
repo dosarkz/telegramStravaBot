@@ -30,6 +30,8 @@ func (s UIService) Run() {
 	u.Timeout = 60
 	updates := s.Action.Bot.GetUpdatesChan(u)
 
+	go s.Repos.UserRepository.FindWorkoutsAndSaveScore()
+
 	for update := range updates {
 		s.Action.callbackQuery(update, &s)
 		mwk := []byte(s.Redis.Get("makeWorkout").Val())

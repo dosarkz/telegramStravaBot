@@ -1,9 +1,11 @@
 package users
 
 import (
+	"fmt"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	domainErrors "telegramStravaBot/app/handlers"
+	"time"
 )
 
 const (
@@ -95,4 +97,12 @@ func (s *UserRepository) FindUserByTelegramId(id int64) (*User, error) {
 	}
 
 	return toDomainModel(result), nil
+}
+
+func (s *UserRepository) FindWorkoutsAndSaveScore() {
+	for {
+
+		time.Sleep(time.Minute)
+		fmt.Println("done")
+	}
 }
