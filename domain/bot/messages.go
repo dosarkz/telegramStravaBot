@@ -8,6 +8,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
+	"telegramStravaBot/config"
 	"telegramStravaBot/domain/strava/entities"
 	"time"
 )
@@ -84,6 +87,16 @@ func getRatingMessage(msg tgbotapi.MessageConfig) tgbotapi.MessageConfig {
 	message += "**Хотите участвовать в рейтинге ‍🚀?** \n Подписывайтесь на страницу в [STRAVA](https://www.strava.com/clubs/540448) и вы автоматически будете в нашем списке 😀👍"
 
 	msg.Text = message
+	return msg
+}
+
+func getHeroByDay(msg tgbotapi.MessageConfig) tgbotapi.MessageConfig {
+	s := config.Strava{BaseUrl: os.Getenv("STRAVA_BASE_URL")}
+	clubId, err := strconv.Atoi(os.Getenv("STRAVA_METRO_GROUP_ID"))
+	if err != nil {
+		log.Panic(err)
+	}
+	s.Feed(clubId)
 	return msg
 }
 
