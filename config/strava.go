@@ -24,11 +24,11 @@ func (s *Strava) Feed(clubId int) {
 	)
 	f := FeedActivity{}
 	var w []WeekActivity
-	//	Weekday := time.Weekday.String
+	Weekday := time.Now().Weekday()
 	GetRequest(url, &f)
 
 	for _, items := range f.EntriesData {
-		if items.Activity.TimeAndLocation.DisplayDate == "Today" && items.Activity.Type == "Run" {
+		if items.Activity.TimeAndLocation.DisplayDate == "Yesterday" && items.Activity.Type == "Run" {
 			curWeek := fmt.Sprintf("%s/athletes/%s/goals/current_week",
 				s.BaseUrl,
 				items.Activity.Athlete.AthleteId,
@@ -36,6 +36,32 @@ func (s *Strava) Feed(clubId int) {
 			GetRequest(curWeek, &w)
 			for _, wItems := range w {
 				if wItems.Sport == "run" {
+					var activities []WeekItem
+					switch Weekday.String() {
+					case "Monday":
+						activities = wItems.ByDayOfWeek.Monday.Activities
+						break
+					case "Tuesday":
+						activities = wItems.ByDayOfWeek.Tuesday.Activities
+						break
+					case "Wednesday":
+						activities = wItems.ByDayOfWeek.Wednesday.Activities
+						break
+					case "Thursday":
+						activities = wItems.ByDayOfWeek.Thursday.Activities
+						break
+					case "Friday":
+						activities = wItems.ByDayOfWeek.Friday.Activities
+						break
+					case "Saturday":
+						activities = wItems.ByDayOfWeek.Saturday.Activities
+						break
+					case "Sunday":
+						activities = wItems.ByDayOfWeek.Sunday.Activities
+						break
+					}
+
+					fmt.Println(activities)
 				}
 			}
 		}
