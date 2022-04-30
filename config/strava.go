@@ -29,6 +29,7 @@ func (s *Strava) Feed(clubId int) {
 
 	for _, items := range f.EntriesData {
 		if items.Activity.TimeAndLocation.DisplayDate == "Yesterday" && items.Activity.Type == "Run" {
+			activityId, _ := strconv.ParseInt(items.Activity.Id, 10, 64)
 			curWeek := fmt.Sprintf("%s/athletes/%s/goals/current_week",
 				s.BaseUrl,
 				items.Activity.Athlete.AthleteId,
@@ -61,7 +62,11 @@ func (s *Strava) Feed(clubId int) {
 						break
 					}
 
-					fmt.Println(activities)
+					for _, aItems := range activities {
+						if aItems.Id == activityId {
+							fmt.Println("item:", aItems)
+						}
+					}
 				}
 			}
 		}
