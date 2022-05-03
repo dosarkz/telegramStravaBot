@@ -17,60 +17,110 @@ type Strava struct {
 	BaseUrl string
 }
 
-func (s *Strava) Feed(clubId int) {
+type Feed struct {
+	AvatarUrl   string
+	AthleteName string
+	AthleteId   string
+	SwimTotal   float32
+	BikeTotal   float32
+	RunTotal    float32
+	Points      float32
+}
+
+func (s *Strava) Feed(clubId int) []Feed {
+	var feed []Feed
 	url := fmt.Sprintf("%s/clubs/%s/feed?feed_type=club",
 		s.BaseUrl,
-		strconv.Itoa(clubId),
-	)
+		strconv.Itoa(clubId))
 	f := FeedActivity{}
 	var w []WeekActivity
 	Weekday := time.Now().Weekday()
+
+	// List past user activities from club
 	GetRequest(url, &f)
 
 	for _, items := range f.EntriesData {
-		if items.Activity.TimeAndLocation.DisplayDate == "Yesterday" && items.Activity.Type == "Run" {
+		var points float32 = 0.0
+		var runTotal, swimTotal, bikeTotal float32 = 0.0, 0.0, 0.0
+		athlete := Feed{AthleteName: items.Activity.Athlete.AthleteName,
+			AthleteId: items.Activity.Athlete.AthleteId}
+
+		if items.Activity.TimeAndLocation.DisplayDate == "Yesterday" {
+
 			activityId, _ := strconv.ParseInt(items.Activity.Id, 10, 64)
 			curWeek := fmt.Sprintf("%s/athletes/%s/goals/current_week",
 				s.BaseUrl,
 				items.Activity.Athlete.AthleteId,
 			)
+			// Activities by athlete from current week
 			GetRequest(curWeek, &w)
-			for _, wItems := range w {
-				if wItems.Sport == "run" {
-					var activities []WeekItem
-					switch Weekday.String() {
-					case "Monday":
-						activities = wItems.ByDayOfWeek.Monday.Activities
-						break
-					case "Tuesday":
-						activities = wItems.ByDayOfWeek.Tuesday.Activities
-						break
-					case "Wednesday":
-						activities = wItems.ByDayOfWeek.Wednesday.Activities
-						break
-					case "Thursday":
-						activities = wItems.ByDayOfWeek.Thursday.Activities
-						break
-					case "Friday":
-						activities = wItems.ByDayOfWeek.Friday.Activities
-						break
-					case "Saturday":
-						activities = wItems.ByDayOfWeek.Saturday.Activities
-						break
-					case "Sunday":
-						activities = wItems.ByDayOfWeek.Sunday.Activities
-						break
-					}
 
-					for _, aItems := range activities {
-						if aItems.Id == activityId {
-							fmt.Println("item:", aItems)
+			for _, wItems := range w {
+				var sum float32 = 0.00
+				var activities []WeekItem
+				switch Weekday.String() {
+				case "Monday":
+					activities = wItems.ByDayOfWeek.Monday.Activities
+					break
+				case "Tuesday":
+					activities = wItems.ByDayOfWeek.Tuesday.Activities
+					break
+				case "Wednesday":
+					activities = wItems.ByDayOfWeek.Wednesday.Activities
+					break
+				case "Thursday":
+					activities = wItems.ByDayOfWeek.Thursday.Activities
+					break
+				case "Friday":
+					activities = wItems.ByDayOfWeek.Friday.Activities
+					break
+				case "Saturday":
+					activities = wItems.ByDayOfWeek.Saturday.Activities
+					break
+				case "Sunday":
+					activities = wItems.ByDayOfWeek.Sunday.Activities
+					break
+				}
+
+				var elGain = 0
+
+				for _, aItems := range activities {
+					if aItems.Id == activityId {
+						sum += aItems.Distance
+						elGain += aItems.ElevGain
+
+						switch aItems.Type {
+						case "Swim":
+							if aItems.Distance >= 100 {
+								swimTotal += sum
+								points += aItems.Distance / 200
+							}
+							break
+						case "Ride":
+							if aItems.Distance >= 100 {
+								bikeTotal += sum
+								points += aItems.Distance / 5000
+							}
+							break
+						case "Run":
+							if aItems.Distance >= 100 {
+								runTotal += sum
+								points += aItems.Distance / 1000
+							}
+							break
 						}
 					}
 				}
 			}
+
+			athlete.Points = points
+			athlete.RunTotal = runTotal / 1000
+			athlete.BikeTotal = bikeTotal / 1000
+			athlete.SwimTotal = swimTotal
+			feed = append(feed, athlete)
 		}
 	}
+	return feed
 }
 
 type WeekActivity struct {
@@ -95,6 +145,9 @@ type WeekItem struct {
 	Id       int64   `json:"id"`
 	Name     string  `json:"name"`
 	Distance float32 `json:"distance"`
+	ElevGain int     `json:"elev_gain"`
+	Type     string  `json:"type"`
+	Speed    float32 `json:"speed"`
 }
 
 func GetStrava() *Strava {
