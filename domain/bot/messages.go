@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"telegramStravaBot/config"
 	"telegramStravaBot/domain/strava/entities"
@@ -99,20 +100,23 @@ func getHeroByDay(msg tgbotapi.MessageConfig) tgbotapi.MessageConfig {
 	}
 	feed := s.Feed(clubId)
 	var message = "Герой дня от " + currentTime + "\n\n"
+	sort.SliceStable(feed, func(i, j int) bool {
+		return feed[i].Points > feed[j].Points
+	})
 
 	for i, items := range feed {
 		athleteLink := fmt.Sprintf("https://www.strava.com/athletes/%v", items.AthleteId)
-		message += fmt.Sprintf("%v. [%s](%s) - 🏊‍♂м️: %.2f м, 🚴: %.2f км, 🏃: %.2f км, maqtaý: %v \n",
+		message += fmt.Sprintf("%v. [%s](%s) - 🏊‍♂м️: %.2f м, 🚴: %.2f км, 🏃: %.2f км, *ūpai: %v* \n",
 			i+1,
 			items.AthleteName,
 			athleteLink,
 			items.SwimTotal, items.BikeTotal, items.RunTotal,
 			items.Points)
 	}
-	message += "\n\n*Как начисляется maqtaý за день?*\n\n"
-	message += "Плавание - за 200 м плавания - 1 maqtaý\n"
-	message += "Вело - за 5 км езды- 1 maqtaý\n"
-	message += "Бег - за 1 км бега - 1 maqtaý\n\n"
+	message += "\n\n*Как начисляется ūpai за день?*\n\n"
+	message += "Плавание - за 200 м плавания - 1 ūpai\n"
+	message += "Вело - за 5 км езды- 1 ūpai\n"
+	message += "Бег - за 1 км бега - 1 ūpai\n\n"
 	message += "**Хотите участвовать в рейтинге дня ☀?** \n Подписывайтесь на страницу в [STRAVA](https://www.strava.com/clubs/540448)"
 	msg.Text = message
 	return msg
