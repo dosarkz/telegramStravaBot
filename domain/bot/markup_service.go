@@ -24,14 +24,15 @@ func (m *UIMenuService) MainMenu() tgbotapi.ReplyKeyboardMarkup {
 			tgbotapi.NewKeyboardButton("🏃 Клуб Любителей Бега MaratHON"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("⚡ Рейтинг Метронома"),
-			tgbotapi.NewKeyboardButton("✅ Запись на тренировку"),
+			tgbotapi.NewKeyboardButton("💥 Герой дня"),
+			tgbotapi.NewKeyboardButton("⚡ Рейтинг метронома"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("😊 Разминка Амосова"),
 			tgbotapi.NewKeyboardButton("☂ Погода"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("✅ Записаться"),
 			tgbotapi.NewKeyboardButton("➕Добавить тренировку"),
 		),
 	)
