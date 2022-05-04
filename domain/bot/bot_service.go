@@ -83,6 +83,9 @@ func (s UIService) Run() {
 		case "close":
 			msg = getCloseMessage(msg)
 			break
+		case "hero":
+			msg = getHeroByDay(msg)
+			break
 		case "rating":
 			msg = getRatingMessage(msg)
 			break
