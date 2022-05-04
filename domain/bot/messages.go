@@ -106,7 +106,7 @@ func getHeroByDay(msg tgbotapi.MessageConfig) tgbotapi.MessageConfig {
 
 	for i, items := range feed {
 		athleteLink := fmt.Sprintf("https://www.strava.com/athletes/%v", items.AthleteId)
-		message += fmt.Sprintf("%v. [%s](%s) - 🏊‍♂м️: %.2f м, 🚴: %.2f км, 🏃: %.2f км, *ūpai: %v* \n",
+		message += fmt.Sprintf("%v. [%s](%s) - 🏊‍♂: %.2f м, 🚴: %.2f км, 🏃: %.2f км, *ūpai: %v* \n",
 			i+1,
 			items.AthleteName,
 			athleteLink,
