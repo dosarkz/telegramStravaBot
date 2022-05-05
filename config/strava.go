@@ -18,13 +18,14 @@ type Strava struct {
 }
 
 type Feed struct {
-	AvatarUrl   string
-	AthleteName string
-	AthleteId   string
-	SwimTotal   float32
-	BikeTotal   float32
-	RunTotal    float32
-	Points      float32
+	AvatarUrl     string
+	AthleteName   string
+	AthleteId     string
+	SwimTotal     float32
+	BikeTotal     float32
+	RunTotal      float32
+	Points        float32
+	ElevationGain int32
 }
 
 func FeedRequest(baseUrl string, clubId string, cursor int32) string {
@@ -76,10 +77,12 @@ func GetFeed(url string, f *FeedActivity, baseUrl string, clubId string,
 			GetRequest(curWeek, &w)
 
 			var points float32 = 0.0
+			var sumElGain int32 = 0
 			var runTotal, swimTotal, bikeTotal float32 = 0.0, 0.0, 0.0
 
 			for _, wItems := range w {
 				var sum float32 = 0.00
+				var elGain int32 = 0
 				var activities []WeekItem
 				switch weekday.String() {
 				case "Monday":
@@ -105,8 +108,6 @@ func GetFeed(url string, f *FeedActivity, baseUrl string, clubId string,
 					break
 				}
 
-				var elGain = 0
-
 				for _, aItems := range activities {
 					fmt.Println("Find item", aItems)
 					sum += aItems.Distance
@@ -129,7 +130,8 @@ func GetFeed(url string, f *FeedActivity, baseUrl string, clubId string,
 					case "Run":
 						if aItems.Distance >= 100 {
 							runTotal += sum
-							points += aItems.Distance / 1000
+							points += (aItems.Distance / 1000) + float32(elGain/10)
+							sumElGain += elGain
 						}
 						break
 					}
@@ -140,6 +142,7 @@ func GetFeed(url string, f *FeedActivity, baseUrl string, clubId string,
 			athlete.RunTotal = runTotal / 1000
 			athlete.BikeTotal = bikeTotal / 1000
 			athlete.SwimTotal = swimTotal
+			athlete.ElevationGain = sumElGain
 
 			for s, value := range *feed {
 				if value.AthleteId == items.Activity.Athlete.AthleteId {
@@ -182,7 +185,7 @@ type WeekItem struct {
 	Id       int64   `json:"id"`
 	Name     string  `json:"name"`
 	Distance float32 `json:"distance"`
-	ElevGain int     `json:"elev_gain"`
+	ElevGain int32   `json:"elev_gain"`
 	Type     string  `json:"type"`
 	Speed    float32 `json:"speed"`
 }
