@@ -54,112 +54,147 @@ func (s *Strava) Feed(clubId int) []Feed {
 func GetFeed(url string, f *FeedActivity, baseUrl string, clubId string,
 	feed *[]Feed, w []WeekActivity, weekday time.Weekday) *[]Feed {
 	GetRequest(url, &f)
+	athlete := Feed{}
 
 	for e, items := range f.EntriesData {
-		athlete := Feed{AthleteName: items.Activity.Athlete.AthleteName,
-			AthleteId: items.Activity.Athlete.AthleteId}
+		athlete.AthleteId = items.Activity.Athlete.AthleteId
+		athlete.AthleteName = items.Activity.Athlete.AthleteName
+		currentDay := items.Activity.TimeAndLocation.DisplayDate
+
+		if athlete.AthleteId == "" {
+			continue
+		}
+
+		for _, value := range *feed {
+			if value.AthleteId == athlete.AthleteId {
+				athlete = value
+				break
+			}
+		}
 
 		if e+1 == len(f.EntriesData) {
 			url = FeedRequest(baseUrl, clubId, items.CursorData.UpdatedAt)
 			feed = GetFeed(url, f, baseUrl, clubId, feed, w, weekday)
 		}
 
-		if items.Activity.Athlete.AthleteId == "" {
-			continue
+		if currentDay == "Today" {
+			feed = getCurrentWeekActivities(baseUrl, athlete, w, weekday, feed)
 		}
 
-		if items.Activity.TimeAndLocation.DisplayDate == "Today" {
-			curWeek := fmt.Sprintf("%s/athletes/%s/goals/current_week",
-				baseUrl,
-				items.Activity.Athlete.AthleteId,
-			)
-			// Activities by athlete from current week
-			GetRequest(curWeek, &w)
+		if len(items.RowData.Activities) > 0 {
+			for _, activityItem := range items.RowData.Activities {
+				_, m, d := activityItem.StartDateLocal.Date()
+				_, nm, nd := time.Now().Date()
 
-			var points float32 = 0.0
-			var sumElGain int32 = 0
-			var runTotal, swimTotal, bikeTotal float32 = 0.0, 0.0, 0.0
-
-			for _, wItems := range w {
-				var sum float32 = 0.00
-				var elGain int32 = 0
-				var activities []WeekItem
-				switch weekday.String() {
-				case "Monday":
-					activities = wItems.ByDayOfWeek.Monday.Activities
-					break
-				case "Tuesday":
-					activities = wItems.ByDayOfWeek.Tuesday.Activities
-					break
-				case "Wednesday":
-					activities = wItems.ByDayOfWeek.Wednesday.Activities
-					break
-				case "Thursday":
-					activities = wItems.ByDayOfWeek.Thursday.Activities
-					break
-				case "Friday":
-					activities = wItems.ByDayOfWeek.Friday.Activities
-					break
-				case "Saturday":
-					activities = wItems.ByDayOfWeek.Saturday.Activities
-					break
-				case "Sunday":
-					activities = wItems.ByDayOfWeek.Sunday.Activities
-					break
-				}
-
-				for _, aItems := range activities {
-					fmt.Println("Find item", aItems)
-					sum += aItems.Distance
-					elGain += aItems.ElevGain
-
-					switch aItems.Type {
-					case "Swim":
-						if aItems.Distance >= 100 {
-							swimTotal += sum
-							points += aItems.Distance / 200
+				if m == nm && d == nd {
+					for j, value := range *feed {
+						if value.AthleteId == strconv.Itoa(int(activityItem.AthleteId)) {
+							athlete = value
+							//	feed = getCurrentWeekActivities(baseUrl, athlete,w, weekday, feed)
+							break
 						}
-						break
-					case "Ride":
-						fmt.Println("Bike", aItems.Distance)
-						if aItems.Distance >= 100 {
-							bikeTotal += sum
-							points += aItems.Distance / 5000
+
+						if len(*feed) == j+1 && value.AthleteId != strconv.Itoa(int(activityItem.AthleteId)) {
+							athlete = Feed{
+								AthleteName: activityItem.AthleteName,
+								AthleteId:   strconv.Itoa(int(activityItem.AthleteId)),
+							}
+
+							fmt.Println("added group member", athlete)
+							feed = getCurrentWeekActivities(baseUrl, athlete, w, weekday, feed)
+							break
 						}
-						break
-					case "Run":
-						if aItems.Distance >= 100 {
-							runTotal += sum
-							points += (aItems.Distance / 1000) + float32(elGain/10)
-							sumElGain += elGain
-						}
-						break
 					}
 				}
-			}
 
-			athlete.Points = points
-			athlete.RunTotal = runTotal / 1000
-			athlete.BikeTotal = bikeTotal / 1000
-			athlete.SwimTotal = swimTotal
-			athlete.ElevationGain = sumElGain
-
-			for s, value := range *feed {
-				if value.AthleteId == items.Activity.Athlete.AthleteId {
-					break
-				}
-
-				if len(*feed) == s+1 && value.AthleteId != items.Activity.Athlete.AthleteId {
-					*feed = append(*feed, athlete)
-					break
-				}
-			}
-
-			if len(*feed) == 0 {
-				*feed = append(*feed, athlete)
 			}
 		}
 	}
+	return feed
+}
+
+func getCurrentWeekActivities(baseUrl string, athlete Feed, w []WeekActivity, weekday time.Weekday, feed *[]Feed) *[]Feed {
+	curWeek := fmt.Sprintf("%s/athletes/%s/goals/current_week",
+		baseUrl,
+		athlete.AthleteId,
+	)
+	// Activities by athlete from current week
+	GetRequest(curWeek, &w)
+
+	var points float32 = 0.0
+
+	for _, wItems := range w {
+
+		var activities []WeekItem
+		switch weekday.String() {
+		case "Monday":
+			activities = wItems.ByDayOfWeek.Monday.Activities
+			break
+		case "Tuesday":
+			activities = wItems.ByDayOfWeek.Tuesday.Activities
+			break
+		case "Wednesday":
+			activities = wItems.ByDayOfWeek.Wednesday.Activities
+			break
+		case "Thursday":
+			activities = wItems.ByDayOfWeek.Thursday.Activities
+			break
+		case "Friday":
+			activities = wItems.ByDayOfWeek.Friday.Activities
+			break
+		case "Saturday":
+			activities = wItems.ByDayOfWeek.Saturday.Activities
+			break
+		case "Sunday":
+			activities = wItems.ByDayOfWeek.Sunday.Activities
+			break
+		}
+
+		for _, aItems := range activities {
+			fmt.Println("Find item", aItems)
+			switch aItems.Type {
+			case "Swim":
+				fmt.Println("Swim", aItems.Distance)
+				if aItems.Distance >= 100 {
+					athlete.SwimTotal += aItems.Distance
+					points += athlete.SwimTotal / 200
+				}
+				break
+			case "Ride":
+				fmt.Println("Bike", aItems.Distance)
+				if aItems.Distance >= 100 {
+					athlete.BikeTotal += aItems.Distance / 1000
+					points += athlete.BikeTotal / 5000
+				}
+				break
+			case "Run":
+				if aItems.Distance >= 100 {
+					athlete.RunTotal += aItems.Distance / 1000
+					athlete.ElevationGain += aItems.ElevGain
+					points += athlete.RunTotal + float32(athlete.ElevationGain/10)
+				}
+				break
+			}
+		}
+	}
+
+	athlete.Points = points
+
+	for s, value := range *feed {
+		if value.AthleteId == athlete.AthleteId {
+			break
+		}
+
+		if len(*feed) == s+1 && value.AthleteId != athlete.AthleteId {
+			*feed = append(*feed, athlete)
+			break
+		}
+	}
+
+	if len(*feed) == 0 {
+		*feed = append(*feed, athlete)
+	}
+
 	return feed
 }
 
@@ -215,9 +250,25 @@ type Entries struct {
 			Location          string `json:"location"`
 		} `json:"timeAndLocation"`
 	} `json:"activity"`
+	RowData struct {
+		Entity     string `json:"entity"`
+		Activities []GroupActivityItem
+	}
 	CursorData struct {
 		UpdatedAt int32 `json:"updated_at"`
 	} `json:"cursorData"`
+}
+
+type GroupActivityItem struct {
+	Entity         string      `json:"entity"`
+	EntityId       int64       `json:"entity_id"`
+	AthleteId      int64       `json:"athlete_id"`
+	AthleteName    string      `json:"athlete_name"`
+	Type           string      `json:"type"`
+	StartDateLocal time.Time   `json:"start_date_local"`
+	Visibility     string      `json:"visibility"`
+	MapPolyline    [][]float64 `json:"map_polyline"`
+	Location       string      `json:"location"`
 }
 
 func GetRequest(url string, m any) any {
