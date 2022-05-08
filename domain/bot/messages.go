@@ -123,7 +123,7 @@ func getHeroByDay(msg tgbotapi.MessageConfig) tgbotapi.MessageConfig {
 	}
 	message += "\n\n*Как начисляется ūpai за день?*\n\n"
 	message += "Плавание - за 200 м плавания - 1 ūpai\n"
-	message += "Вело - за 5 км езды- 1 ūpai\n"
+	message += "Вело - за 2 км езды - 1 ūpai\n"
 	message += "Бег - за 1 км бега - 1 ūpai, за 100 метров подъема - 10 ūpai\n\n"
 	message += "**Хотите участвовать в рейтинге дня ☀?** \n Подписывайтесь на страницу в [STRAVA](https://www.strava.com/clubs/540448)"
 	msg.Text = message
