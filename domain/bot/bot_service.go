@@ -48,12 +48,14 @@ func (s UIService) Run() {
 		switch update.Message.Text {
 		case "⚡ Рейтинг метронома":
 			msg = getRatingMessage(msg)
+			msg.ReplyMarkup = s.Menu.MetroUpdateButtonKeyboard()
 			break
 		case "✅ Записаться":
 			appointmentToRunning(&s, update)
 			break
 		case "💥 Герой дня":
 			msg = getHeroByDay(msg)
+			msg.ReplyMarkup = s.Menu.HeroUpdateButtonKeyboard()
 			break
 		case "🏃 Клуб Любителей Бега MaratHON":
 			msg = getClubMessage(msg, s.Menu)
@@ -85,6 +87,7 @@ func (s UIService) Run() {
 			break
 		case "hero":
 			msg = getHeroByDay(msg)
+			msg.ReplyMarkup = s.Menu.HeroUpdateButtonKeyboard()
 			break
 		case "rating":
 			msg = getRatingMessage(msg)
