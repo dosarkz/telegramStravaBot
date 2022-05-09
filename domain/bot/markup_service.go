@@ -63,6 +63,24 @@ func (m *UIMenuService) CreateWorkoutKeyboard() tgbotapi.InlineKeyboardMarkup {
 	)
 }
 
+func (m *UIMenuService) HeroUpdateButtonKeyboard() tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		[]tgbotapi.InlineKeyboardButton{m.Button.UpdateHeroButton()},
+	)
+}
+
+func (m *UIMenuService) MetroUpdateButtonKeyboard() tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		[]tgbotapi.InlineKeyboardButton{m.Button.UpdateMetroButton()},
+	)
+}
+
+func (m *UIMenuService) HeroUpdatingButtonKeyboard() tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		[]tgbotapi.InlineKeyboardButton{m.Button.UpdatingHeroButton()},
+	)
+}
+
 func (m *UIMenuService) AppointmentKeyboardMarkup(workoutId int) tgbotapi.InlineKeyboardMarkup {
 	callbackData := "appointment_" + strconv.Itoa(workoutId)
 	return tgbotapi.NewInlineKeyboardMarkup(

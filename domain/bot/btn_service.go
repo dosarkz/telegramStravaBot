@@ -30,6 +30,21 @@ func (t *UIButtonService) CompleteWorkoutButton() tgbotapi.InlineKeyboardButton 
 	return tgbotapi.InlineKeyboardButton{Text: "❌ Завершить", CallbackData: &str}
 }
 
+func (t *UIButtonService) UpdateHeroButton() tgbotapi.InlineKeyboardButton {
+	str := "update_hero"
+	return tgbotapi.InlineKeyboardButton{Text: "🔃 Обновить", CallbackData: &str}
+}
+
+func (t *UIButtonService) UpdateMetroButton() tgbotapi.InlineKeyboardButton {
+	str := "update_metro"
+	return tgbotapi.InlineKeyboardButton{Text: "🔃 Обновить", CallbackData: &str}
+}
+
+func (t *UIButtonService) UpdatingHeroButton() tgbotapi.InlineKeyboardButton {
+	str := "update_hero"
+	return tgbotapi.InlineKeyboardButton{Text: "🏃 Разминаюсь и бегу, пожалуйста ждите...", CallbackData: &str}
+}
+
 func (t *UIButtonService) InstaInlineButton() tgbotapi.InlineKeyboardButton {
 	instagramButtonData := os.Getenv("METRONOME_INSTA_URL")
 	return tgbotapi.InlineKeyboardButton{Text: "Подписаться в Instagram", URL: &instagramButtonData}
