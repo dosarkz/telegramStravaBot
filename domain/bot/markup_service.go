@@ -24,14 +24,15 @@ func (m *UIMenuService) MainMenu() tgbotapi.ReplyKeyboardMarkup {
 			tgbotapi.NewKeyboardButton("🏃 Клуб Любителей Бега MaratHON"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("⚡ Рейтинг Метронома"),
-			tgbotapi.NewKeyboardButton("✅ Запись на тренировку"),
+			tgbotapi.NewKeyboardButton("💥 Герой дня"),
+			tgbotapi.NewKeyboardButton("⚡ Рейтинг метронома"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
 			tgbotapi.NewKeyboardButton("😊 Разминка Амосова"),
 			tgbotapi.NewKeyboardButton("☂ Погода"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("✅ Записаться"),
 			tgbotapi.NewKeyboardButton("➕Добавить тренировку"),
 		),
 	)
@@ -59,6 +60,24 @@ func (m *UIMenuService) MarathonInlineKeyboardMarkup() tgbotapi.InlineKeyboardMa
 func (m *UIMenuService) CreateWorkoutKeyboard() tgbotapi.InlineKeyboardMarkup {
 	return tgbotapi.NewInlineKeyboardMarkup(
 		[]tgbotapi.InlineKeyboardButton{m.Button.CompleteWorkoutButton()},
+	)
+}
+
+func (m *UIMenuService) HeroUpdateButtonKeyboard() tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		[]tgbotapi.InlineKeyboardButton{m.Button.UpdateHeroButton()},
+	)
+}
+
+func (m *UIMenuService) MetroUpdateButtonKeyboard() tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		[]tgbotapi.InlineKeyboardButton{m.Button.UpdateMetroButton()},
+	)
+}
+
+func (m *UIMenuService) HeroUpdatingButtonKeyboard() tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		[]tgbotapi.InlineKeyboardButton{m.Button.UpdatingHeroButton()},
 	)
 }
 

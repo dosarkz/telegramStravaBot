@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/go-redis/redis"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"log"
 	"strconv"
 	"telegramStravaBot/domain"
 	"telegramStravaBot/domain/workouts"
@@ -30,6 +31,8 @@ func (s UIService) Run() {
 	u.Timeout = 60
 	updates := s.Action.Bot.GetUpdatesChan(u)
 
+	go s.Repos.UserRepository.FindWorkoutsAndSaveScore()
+
 	for update := range updates {
 		s.Action.callbackQuery(update, &s)
 		mwk := []byte(s.Redis.Get("makeWorkout").Val())
@@ -43,11 +46,16 @@ func (s UIService) Run() {
 		isGroup := checkIsGroup(update, msg, s.Action.Bot)
 
 		switch update.Message.Text {
-		case "⚡ Рейтинг Метронома":
+		case "⚡ Рейтинг метронома":
 			msg = getRatingMessage(msg)
+			msg.ReplyMarkup = s.Menu.MetroUpdateButtonKeyboard()
 			break
-		case "✅ Запись на тренировку":
+		case "✅ Записаться":
 			appointmentToRunning(&s, update)
+			break
+		case "💥 Герой дня":
+			msg = getHeroByDay(msg)
+			msg.ReplyMarkup = s.Menu.HeroUpdateButtonKeyboard()
 			break
 		case "🏃 Клуб Любителей Бега MaratHON":
 			msg = getClubMessage(msg, s.Menu)
@@ -77,6 +85,10 @@ func (s UIService) Run() {
 		case "close":
 			msg = getCloseMessage(msg)
 			break
+		case "hero":
+			msg = getHeroByDay(msg)
+			msg.ReplyMarkup = s.Menu.HeroUpdateButtonKeyboard()
+			break
 		case "rating":
 			msg = getRatingMessage(msg)
 			break
@@ -94,7 +106,7 @@ func (s UIService) Run() {
 			msg.Text = "Создание новой тренировки прервано успешно."
 			err := s.Redis.Set("makeWorkout", 0, 0).Err()
 			if err != nil {
-				panic(err)
+				log.Panic(err)
 			}
 			break
 		case "deleteNewWorkout":
@@ -105,11 +117,11 @@ func (s UIService) Run() {
 			bJson, err := json.Marshal(&workouts.WorkoutStatus{UserId: update.Message.From.ID,
 				DeleteStatus: 1})
 			if err != nil {
-				panic(err)
+				log.Panic(err)
 			}
 			err = s.Redis.Set("makeWorkout", bJson, 0).Err()
 			if err != nil {
-				panic(err)
+				log.Panic(err)
 			}
 			break
 		case "run":
@@ -143,7 +155,7 @@ func (s UIService) Run() {
 					msg.Text = "Успешно. Тренировка сохранена под №" + strconv.Itoa(workout.Id)
 					err := s.Redis.Set("makeWorkout", 0, 0).Err()
 					if err != nil {
-						panic(err)
+						log.Panic(err)
 					}
 				}
 			}
@@ -170,7 +182,7 @@ func newTraining(msg tgbotapi.MessageConfig, update tgbotapi.Update, redis *redi
 
 	err = redis.Set("makeWorkout", bJson, 0).Err()
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	return msg

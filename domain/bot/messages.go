@@ -8,6 +8,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"sort"
+	"strconv"
+	"telegramStravaBot/config"
 	"telegramStravaBot/domain/strava/entities"
 	"time"
 )
@@ -83,6 +87,45 @@ func getRatingMessage(msg tgbotapi.MessageConfig) tgbotapi.MessageConfig {
 	message += "\n"
 	message += "**Хотите участвовать в рейтинге ‍🚀?** \n Подписывайтесь на страницу в [STRAVA](https://www.strava.com/clubs/540448) и вы автоматически будете в нашем списке 😀👍"
 
+	msg.Text = message
+	return msg
+}
+
+func getHeroByDay(msg tgbotapi.MessageConfig) tgbotapi.MessageConfig {
+	s := config.Strava{BaseUrl: os.Getenv("STRAVA_BASE_URL")}
+	clubId, err := strconv.Atoi(os.Getenv("STRAVA_METRO_GROUP_ID"))
+	currentTime := time.Now().Format(time.ANSIC)
+	if err != nil {
+		log.Panic(err)
+	}
+	feed := s.Feed(clubId)
+	var message = "Герой дня от " + currentTime + "\n\n"
+	sort.SliceStable(feed, func(i, j int) bool {
+		return feed[i].Points > feed[j].Points
+	})
+
+	for i, items := range feed {
+		athleteLink := fmt.Sprintf("https://www.strava.com/athletes/%v", items.AthleteId)
+		message += fmt.Sprintf("%v. [%s](%s) - ",
+			i+1,
+			items.AthleteName,
+			athleteLink)
+		if items.SwimTotal > 0 {
+			message += fmt.Sprintf("🏊‍♂ %.2f м, ", items.SwimTotal)
+		}
+		if items.BikeTotal > 0 {
+			message += fmt.Sprintf("🚴 %.2f км, ", items.BikeTotal)
+		}
+		if items.RunTotal > 0 {
+			message += fmt.Sprintf("🏃 %.2f км ⛰ %d м, ", items.RunTotal, items.ElevationGain)
+		}
+		message += fmt.Sprintf("*%.f ūpai* \n", items.Points)
+	}
+	message += "\n\n*Как начисляется ūpai за день?*\n\n"
+	message += "Плавание - за 200 м плавания - 1 ūpai\n"
+	message += "Вело - за 2 км езды - 1 ūpai\n"
+	message += "Бег - за 1 км бега - 1 ūpai, за 100 метров подъема - 10 ūpai\n\n"
+	message += "**Хотите участвовать в рейтинге дня ☀?** \n Подписывайтесь на страницу в [STRAVA](https://www.strava.com/clubs/540448)"
 	msg.Text = message
 	return msg
 }
