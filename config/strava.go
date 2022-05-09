@@ -56,9 +56,22 @@ func GetFeed(url string, f *FeedActivity, baseUrl string, clubId string,
 	GetRequest(url, &f)
 
 	for e, items := range f.EntriesData {
+		found := false
 		athlete := Feed{}
 		athlete.AthleteId = items.Activity.Athlete.AthleteId
 		athlete.AthleteName = items.Activity.Athlete.AthleteName
+
+		for _, value := range *feed {
+			if value.AthleteId == items.Activity.Athlete.AthleteId {
+				found = true
+				break
+			}
+		}
+
+		if found {
+			continue
+		}
+
 		currentDay := items.Activity.TimeAndLocation.DisplayDate
 
 		if len(items.RowData.Activities) > 0 {
@@ -93,13 +106,6 @@ func GetFeed(url string, f *FeedActivity, baseUrl string, clubId string,
 			continue
 		}
 
-		for _, value := range *feed {
-			if value.AthleteId == athlete.AthleteId {
-				athlete = value
-				break
-			}
-		}
-
 		if e+1 == len(f.EntriesData) {
 			url = FeedRequest(baseUrl, clubId, items.CursorData.UpdatedAt)
 			feed = GetFeed(url, f, baseUrl, clubId, feed, w, weekday)
@@ -120,7 +126,7 @@ func getCurrentWeekActivities(baseUrl string, athlete Feed, w []WeekActivity, we
 	)
 	// Activities by athlete from current week
 	GetRequest(curWeek, &w)
-
+	fmt.Println("Previous RUN TOTAL", athlete.RunTotal)
 	for _, wItems := range w {
 
 		var activities []WeekItem
@@ -166,9 +172,14 @@ func getCurrentWeekActivities(baseUrl string, athlete Feed, w []WeekActivity, we
 				break
 			case "Run":
 				if aItems.Distance >= 100 {
+
 					athlete.RunTotal += aItems.Distance / 1000
+					fmt.Println("RUN POINTS BEFORE", athlete.Points)
+					fmt.Println("RUN TOTAL", athlete.RunTotal)
 					athlete.ElevationGain += aItems.ElevGain
-					athlete.Points += athlete.RunTotal + float32(athlete.ElevationGain/10)
+					athlete.Points += aItems.Distance/1000 + float32(aItems.ElevGain/10)
+
+					fmt.Println("RUN POINTS AFTER", athlete.Points)
 				}
 				break
 			}
