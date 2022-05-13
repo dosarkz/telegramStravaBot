@@ -91,6 +91,7 @@ func (s UIService) Run() {
 			break
 		case "rating":
 			msg = getRatingMessage(msg)
+			msg.ReplyMarkup = s.Menu.MetroUpdateButtonKeyboard()
 			break
 		case "newWorkout":
 			if isGroup {
