@@ -65,10 +65,6 @@ func (t *UIButtonService) CentralInlineButton() tgbotapi.InlineKeyboardButton {
 	return tgbotapi.InlineKeyboardButton{Text: "Сообщество бега в Центральном парке (whatsapp группа)", URL: &centralButtonData}
 }
 
-func (t *UIButtonService) AlmatyRunningGroups() tgbotapi.InlineKeyboardMarkup {
-	return tgbotapi.NewInlineKeyboardMarkup([]tgbotapi.InlineKeyboardButton{t.AlmatyInlineButton()})
-}
-
 func (t *UIButtonService) Participate(text string, callback string) tgbotapi.InlineKeyboardButton {
 	return tgbotapi.InlineKeyboardButton{Text: text, CallbackData: &callback}
 }

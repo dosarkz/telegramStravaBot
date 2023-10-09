@@ -53,7 +53,6 @@ func (m *UIMenuService) MarathonInlineKeyboardMarkup() tgbotapi.InlineKeyboardMa
 		[]tgbotapi.InlineKeyboardButton{m.Button.MetronomeInlineButton()},
 		[]tgbotapi.InlineKeyboardButton{m.Button.BotanInlineButton()},
 		[]tgbotapi.InlineKeyboardButton{m.Button.CentralInlineButton()},
-		[]tgbotapi.InlineKeyboardButton{m.Button.AlmatyInlineButton()},
 	)
 }
 

@@ -49,14 +49,6 @@ services:
       - running
     ports:
       - ${DOCKER_SERVER_PORT}
-  adminer:
-    image: adminer:4
-    container_name: "runbot_adminer"
-    restart: always
-    ports:
-      - ${DOCKER_ADMINER_PORT:-8669}:8080
-    networks:
-      - running
 networks:
   running:
     driver: "bridge"

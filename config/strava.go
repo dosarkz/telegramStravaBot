@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -53,9 +52,13 @@ func (s *Strava) Feed(clubId int) []Feed {
 
 func GetFeed(url string, f *FeedActivity, baseUrl string, clubId string,
 	feed *[]Feed, w []WeekActivity, weekday time.Weekday) *[]Feed {
-	GetRequest(url, &f)
 
-	for e, items := range f.EntriesData {
+	entry := make(chan []Entries)
+
+	go GetRequest(url, entry, f)
+
+	for e, items := range <-entry {
+
 		found := false
 		athlete := Feed{}
 		athlete.AthleteId = items.Activity.Athlete.AthleteId
@@ -92,7 +95,6 @@ func GetFeed(url string, f *FeedActivity, baseUrl string, clubId string,
 								AthleteId:   strconv.Itoa(int(activityItem.AthleteId)),
 							}
 
-							fmt.Println("added group member", athlete)
 							getCurrentWeekActivities(baseUrl, athlete, w, weekday, feed)
 							break
 						}
@@ -111,7 +113,7 @@ func GetFeed(url string, f *FeedActivity, baseUrl string, clubId string,
 			feed = GetFeed(url, f, baseUrl, clubId, feed, w, weekday)
 		}
 
-		if currentDay == "Today" {
+		if currentDay == "Yesterday" {
 			feed = getCurrentWeekActivities(baseUrl, athlete, w, weekday, feed)
 		}
 
@@ -124,10 +126,11 @@ func getCurrentWeekActivities(baseUrl string, athlete Feed, w []WeekActivity, we
 		baseUrl,
 		athlete.AthleteId,
 	)
+	we := make(chan []WeekActivity)
 	// Activities by athlete from current week
-	GetRequest(curWeek, &w)
+	go GetCurrWeekRequest(curWeek, we, w)
 	fmt.Println("Previous RUN TOTAL", athlete.RunTotal)
-	for _, wItems := range w {
+	for _, wItems := range <-we {
 
 		var activities []WeekItem
 		switch weekday.String() {
@@ -281,7 +284,7 @@ type GroupActivityItem struct {
 	Location       string      `json:"location"`
 }
 
-func GetRequest(url string, m any) any {
+func GetRequest(url string, entry chan []Entries, f *FeedActivity) {
 	log.Println(url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -290,20 +293,55 @@ func GetRequest(url string, m any) any {
 	client := &http.Client{Timeout: 10 * time.Second}
 	req.Header.Add("x-requested-with", `XMLHttpRequest`)
 	req.Header.Add("Accept", `text/javascript, application/javascript, application/ecmascript, application/x-ecmascript`)
-	req.Header.Add("Cookie", `sp=ce7f9fb8-8a63-41c5-895e-5a75e94afc35; _ga=GA1.2.1213001791.1633620772; xp_session_identifier=5c74efa0e1cb60db683f77e4e1cc03cb; _strava_cbv2=true; _strava4_session=hq9ai5bthvsfqmcru17g7n11sees3hb; fbm_284597785309=base_domain=.www.strava.com; _gid=GA1.2.229978595.1651301728; CloudFront-Key-Pair-Id=APKAIDPUN4QMG7VUQPSA; _sp_id.f55d=bd9e76bf-912b-4d10-a870-569e64edb826.1651302218.1.1651302218.1651302218.325e6c2c-e943-4481-8d1d-1ab87450ae99; CloudFront-Policy=eyJTdGF0ZW1lbnQiOiBbeyJSZXNvdXJjZSI6Imh0dHBzOi8vaGVhdG1hcC1leHRlcm5hbC0qLnN0cmF2YS5jb20vKiIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTY1MjE2NjIyMH0sIkRhdGVHcmVhdGVyVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNjUwOTQyMjIwfX19XX0_; CloudFront-Signature=MqeRm1sUGjsD28zlEHgqd9TE3nFX8C0fhJic8YQsmUcXJZUrV95-ZN-~oAQpPMq2XbznPzGUyEPrROHahFcKdKt77LyvTD3NNAuh~VPAa56v0Sv0NLZHz6L11ITFL7-rAqzM82-YkW~eMc1ANdBUEHzvkWn3LUbylteXPYSBHbs4XGr1Wf6ZaK3zoY1SDlgb73BiSdaWl6cLW7VON4M8NwGCNT-8~Pun2-9S4YUaWKignTSloGJWqXmNf2tzcSm4kOysiNfilc~jLRn9qXT2YkNu5f5dL8YVrDjVJOE3glZmiaLDl-5LWyAITFRbPWLBoMWeK1lFNsnZufsp~t2GbQ__; _sp_ses.047d=*; fbsr_284597785309=GP2q1QaCvhHmW4v-NaL46i8HbfW7xgxtPG8qxWarM8w.eyJ1c2VyX2lkIjoiMjE0MDA3OTkwOTM4NzgzOSIsImNvZGUiOiJBUUJrcTM5NG15WXpxVnZXRHNiaFhXUmdZeDNhNTAtWXU4Uk44aTdhZHdiQkNDSmtkeVhhOXJiYk5SclA3YTN4N1lEXzJlSXQ4dTJBWTk2c1ZaR0tLbEU1VlFXT1h5RGFZMFNrSFN0N3F1Tmp5N2Vlb3d1VTlqaVRYak9HS0xBalBBSFRyT2ZSVW1iSE55UGIwZHVjUUZwc0tpOVVEaV9SWjJrSnZqQlZRUDhoS1h5TVhiNkZzbFZKVm5SMi1CVHBHcjYtN2JUb1FaSWFMS1pSb1dXMEprQWZGRF9QUGFrbS0yLURDTkF2dnIzNmVSWlhRN2ZyNDQtWlFwVkFlZXRlb2lmLUpYcG9WUlZ0WlpXcndMZUdJdnh0Q3B2OWV5UnNIT0tXTnpQcUg1NkNHMlpQTHRzUE1nMHY1YnplaE9qWk91bWZVYVBteU03X3BIQTRvMmV5VDY5UiIsIm9hdXRoX3Rva2VuIjoiRUFBQUFRa05aQWt0MEJBSEx0bGpmOWF3NHIwbE5SUzhxeG96dnNldnhaQVBmMDdWQ0ppemV0VzRUSVpCNVhSQjBhdE91UWhTQWo5NmNaQURxaTdHWkJTeVA0ZjVLWkN2clZFTG12NTIweElFYmVaQjhOWkF1NTduRHFsWVVqMjllbWlETFNkYlRnMUFBWkJHa1F0Zm5lSDJ1bFJVZ1ZVaDg2QjVvdDRnYXI5TWlhdTdFbDFrd3R0aW4xWGFlWkFjdVpDUXJ2Q1g4amJZMFpCcXByMFhWR3hiYU9vOW4iLCJhbGdvcml0aG0iOiJITUFDLVNIQTI1NiIsImlzc3VlZF9hdCI6MTY1MTMxODkxM30; _dc_gtm_UA-6309847-24=1; fbsr_284597785309=bBwxXUoKMFn0LUvZ7p-9blN2K3eceULxxTXVhboMjKo.eyJ1c2VyX2lkIjoiMjE0MDA3OTkwOTM4NzgzOSIsImNvZGUiOiJBUUR5UWVpTkNkUWwwXzctTzFQb0dqN2o5MjZEdTV6MTFteElQSnF0OFg5Z1VFMXpZNW12OU1qeWFsQ1RnQ0stMHJsUTMxSVhQMERId3VyLWxkTWV1dmJEdEFObzNpeHFMVU9XMGxpck9WaXJRLVRlUVZLM29yX0VsVlJpeWlqZ2FqT3dTVTZIV0E0TFZoc2FrdXhCR3NhaS00SkhDaWhKQzROOXRqSWhoX2hPQ2x3WjBNTHc3QzdrY2lSZUx0TmtFbC0tdnpMR0dHY0ZOX1RiVmpFS3RqY29UVVJDM0tRZUI2MTBSYmM0eWY1MkpJNFVaMjVCVWZ0Nk52enZvRGxDX1lRMGFJRFdjcGxnUXFuekEyMkttSXU0RzNWYUhuTWYwS0h6Yk5nOXNjX0dSc3JyWnZuekFiY05TRDdEWFB4c01xaW1oLW1UOWpJM1VnU2hjVUN6Y0tpcCIsIm9hdXRoX3Rva2VuIjoiRUFBQUFRa05aQWt0MEJBTlByWGJaQU5aQWlxYlNFRW55QmoweEFuWkJSSVpBS3RPa0ZkTmcwT3VjYTc5aVpBbmNkMEMxa05ha2V6d29aQ2ZGWVVZOVpCODBaQWM4NnpqMU93cThaQWxLN3BEa29MR25kN0xMQTh2N1lQaVhqQlpDU0tnWHdzbE9rWE1aQ2RFUXZoZFNINEJXUkVLY285YjgxOEZlVHFLT0VYcnJkazQ5dmEwemI4U2E5VGg0dUMyNW1SUWZPRlZuZHhuS2l5cFpDQU9QTUppeGlHWXREIiwiYWxnb3JpdGhtIjoiSE1BQy1TSEEyNTYiLCJpc3N1ZWRfYXQiOjE2NTEzMTc5NzJ9; _sp_id.047d=bf52cac3-6d67-4d51-9998-d173bcfec686.1651190399.24.1651319156.1651313561.68b49b3e-576b-4a15-8011-95d65f5609b8`)
+	req.Header.Add("Cookie", `_sp_ses.047d=*; sp=19b21ab6-e548-49a4-95ba-1500c64e431e; _strava_cbv3=true; _gid=GA1.2.1211933196.1696870983; _dc_gtm_UA-6309847-24=1; _ga=GA1.1.777890566.1696870983; _scid=0baa2b72-46bd-4f43-89c6-e05ae20c5bdf; _scid_r=0baa2b72-46bd-4f43-89c6-e05ae20c5bdf; _sctr=1%7C1696788000000; _sp_id.047d=3c059e1b-9b66-4a41-be03-44195dbef1e1.1696870981.1.1696870987.1696870981.95d56064-6830-43c8-946f-05e5dc36184a; _gcl_au=1.1.616221630.1696870983.127475789.1696870984.1696870987; _strava4_session=dkh525jctbmigaj3omc8c5ueu5k9nruq; _ga_ESZ0QKJW56=GS1.1.1696870983.1.0.1696870989.54.0.0`)
 
 	resp, err := client.Do(req)
 
 	if resp.Body != nil {
 		defer func(Body io.ReadCloser) {
-			err := Body.Close()
+			err = Body.Close()
 			if err != nil {
 				log.Panic(err)
 			}
 		}(resp.Body)
 	}
 
-	body, readErr := ioutil.ReadAll(resp.Body)
+	body, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+	}
+
+	jsonErr := json.Unmarshal(body, &f)
+
+	if jsonErr != nil {
+		log.Fatal(jsonErr)
+	}
+
+	entry <- f.EntriesData
+}
+func GetCurrWeekRequest(url string, wa chan []WeekActivity, m []WeekActivity) {
+	log.Println(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Panic(err)
+	}
+	client := &http.Client{Timeout: 10 * time.Second}
+	req.Header.Add("x-requested-with", `XMLHttpRequest`)
+	req.Header.Add("Accept", `text/javascript, application/javascript, application/ecmascript, application/x-ecmascript`)
+	req.Header.Add("Cookie", `_sp_ses.047d=*; sp=19b21ab6-e548-49a4-95ba-1500c64e431e; _strava_cbv3=true; _gid=GA1.2.1211933196.1696870983; _dc_gtm_UA-6309847-24=1; _ga=GA1.1.777890566.1696870983; _scid=0baa2b72-46bd-4f43-89c6-e05ae20c5bdf; _scid_r=0baa2b72-46bd-4f43-89c6-e05ae20c5bdf; _sctr=1%7C1696788000000; _sp_id.047d=3c059e1b-9b66-4a41-be03-44195dbef1e1.1696870981.1.1696870987.1696870981.95d56064-6830-43c8-946f-05e5dc36184a; _gcl_au=1.1.616221630.1696870983.127475789.1696870984.1696870987; _strava4_session=dkh525jctbmigaj3omc8c5ueu5k9nruq; _ga_ESZ0QKJW56=GS1.1.1696870983.1.0.1696870989.54.0.0`)
+
+	resp, err := client.Do(req)
+
+	if resp.Body != nil {
+		defer func(Body io.ReadCloser) {
+			err = Body.Close()
+			if err != nil {
+				log.Panic(err)
+			}
+		}(resp.Body)
+	}
+
+	body, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {
 		log.Fatal(readErr)
 	}
@@ -314,5 +352,5 @@ func GetRequest(url string, m any) any {
 		log.Fatal(jsonErr)
 	}
 
-	return m
+	wa <- m
 }

@@ -60,7 +60,7 @@ func (s UIService) Run() {
 		case "🏃 Клуб Любителей Бега MaratHON":
 			msg = getClubMessage(msg, s.Menu)
 			break
-		case "😊 Разминка Амосова":
+		case "😊 Разминка":
 			msg.Text = amosovMessageText()
 			break
 		case "☂ Погода":
