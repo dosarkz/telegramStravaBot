@@ -54,8 +54,8 @@ func (s UIService) Run() {
 			appointmentToRunning(&s, update)
 			break
 		case "💥 Герой дня":
-			msg = getHeroByDay(msg)
-			msg.ReplyMarkup = s.Menu.HeroUpdateButtonKeyboard()
+			//msg = getHeroByDay(msg)
+			//msg.ReplyMarkup = s.Menu.HeroUpdateButtonKeyboard()
 			break
 		case "🏃 Клуб Любителей Бега MaratHON":
 			msg = getClubMessage(msg, s.Menu)
