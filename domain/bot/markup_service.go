@@ -24,7 +24,7 @@ func (m *UIMenuService) MainMenu() tgbotapi.ReplyKeyboardMarkup {
 			tgbotapi.NewKeyboardButton("🏃 Клуб Любителей Бега MaratHON"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("💥 Герой дня"),
+			//tgbotapi.NewKeyboardButton("💥 Герой дня"),
 			tgbotapi.NewKeyboardButton("⚡ Рейтинг метронома"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
