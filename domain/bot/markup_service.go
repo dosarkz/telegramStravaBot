@@ -28,7 +28,7 @@ func (m *UIMenuService) MainMenu() tgbotapi.ReplyKeyboardMarkup {
 			tgbotapi.NewKeyboardButton("⚡ Рейтинг метронома"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("😊 Разминка Амосова"),
+			tgbotapi.NewKeyboardButton("😊 Разминка"),
 			tgbotapi.NewKeyboardButton("☂ Погода"),
 		),
 		tgbotapi.NewKeyboardButtonRow(
