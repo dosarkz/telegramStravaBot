@@ -36,6 +36,7 @@ services:
 
   server:
     container_name: runbot_app
+    restart: always
     build:
       context: .
       dockerfile: Dockerfile
